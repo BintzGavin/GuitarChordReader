@@ -42,9 +42,10 @@ class ChordDetector {
             // Open chord shapes on acoustic guitar often have certain notes emphasized
             'C': { type: 'Major', template: [3, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 1] }, // E and G emphasized, some C overtone
             'D': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 2, 0, 0, 3, 0, 0] }, // A and F# emphasized
-            'E': { type: 'Major', template: [0, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 3] }, // E, B emphasized
-            // Enhanced G chord template - more weight on G and B, added weight on D (the 5th)
-            'G': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 0, 4, 0, 0, 0, 2] }, // Stronger G and B emphasis, added D
+            // Enhanced E chord template - major focus on E and B notes
+            'E': { type: 'Major', template: [0, 0, 0, 0, 5, 0, 0, 0, 3, 0, 0, 2] }, // Strong emphasis on root (E), with B and G#
+            // Completely reworked G chord template for acoustic guitar - much stronger emphasis on G note
+            'G': { type: 'Major', template: [0, 0, 2, 0, 0, 0, 2, 5, 0, 0, 0, 3] }, // Very strong G, with D and B support
             'A': { type: 'Major', template: [0, 1, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0] }, // E, A emphasized
             
             'Em': { type: 'Minor', template: [0, 0, 0, 0, 3, 0, 0, 2, 0, 0, 0, 1] }, // E emphasized, G and B
@@ -61,10 +62,10 @@ class ChordDetector {
         this.noChordFrames = 0;
         
         // Settings
-        this.minVolumeThreshold = 0.015; // Slightly higher to avoid false triggers
-        this.stabilityThreshold = 3; // Increased for more stability
-        this.noiseFloor = 0.2; // Lower threshold to capture more notes
-        this.chordDecayTime = 12; // Frames to keep showing previous chord after silence
+        this.minVolumeThreshold = 0.01; // Keep this low to catch quieter playing
+        this.stabilityThreshold = 5; // Much higher stability requirement to reduce jumpiness
+        this.noiseFloor = 0.15; // Lower to capture more harmonic content
+        this.chordDecayTime = 8; // Frames to keep showing previous chord after silence
     }
 
     /**
@@ -142,8 +143,15 @@ class ChordDetector {
         
         // Calculate confidence based on similarity score and stability
         
-        // Adjust threshold for G chord specifically (more lenient)
-        const threshold = bestMatchChord === 'G' ? 0.45 : 0.5;
+        // Adjust thresholds for specific chords that need more leniency
+        let threshold = 0.5; // Default threshold
+        
+        // Special handling for E and G chords
+        if (bestMatchChord === 'G') {
+            threshold = 0.40; // Much more lenient for G
+        } else if (bestMatchChord === 'E') {
+            threshold = 0.42; // More lenient for E
+        }
         
         // Calculate base confidence from similarity score
         const confidenceBase = Math.max(0, (bestMatchScore - threshold) * 2.0); // Scale to 0-1 range

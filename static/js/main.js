@@ -23,8 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Stability tracking for chord history
     let chordHistoryStability = 0;
-    const chordHistoryThreshold = 5; // Need several consecutive frames of the same chord to add to history
+    const chordHistoryThreshold = 8; // Need many consecutive frames of the same chord to add to history
     let pendingHistoryChord = null;
+    let lastHistoryAddTime = 0; // Track when we last added a chord to history
     
     // Initialize the application
     async function initialize() {
@@ -54,11 +55,17 @@ document.addEventListener('DOMContentLoaded', function() {
             updateChordDisplay(results.chord);
             
             // Track chord for history with stability
-            if (results.chord.name === pendingHistoryChord && results.chord.confidence > 0.4) {
+            if (results.chord.name === pendingHistoryChord && results.chord.confidence > 0.3) {
+                // Lower confidence threshold makes detection more sensitive
                 chordHistoryStability++;
                 
+                // Special handling for E and G chords - faster to add to history
+                const isSpecialChord = (results.chord.name === 'E' || results.chord.name === 'G');
+                const effectiveThreshold = isSpecialChord ? 
+                    Math.floor(chordHistoryThreshold * 0.7) : chordHistoryThreshold;
+                
                 // Add to history if the same chord has been stable for several frames
-                if (chordHistoryStability >= chordHistoryThreshold) {
+                if (chordHistoryStability >= effectiveThreshold) {
                     addChordToHistory(results.chord);
                     chordHistoryStability = 0; // Reset after adding to prevent duplicates
                 }
@@ -141,6 +148,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Time-based debounce - don't add chords too frequently
+        const currentTime = Date.now();
+        const minTimeBetweenChords = 1000; // Milliseconds between chord history additions
+        
+        if (currentTime - lastHistoryAddTime < minTimeBetweenChords) {
+            // Too soon to add another chord
+            return;
+        }
+        
         // Add chord to recent chords array
         recentChords.push({
             name: chord.name,
@@ -154,6 +170,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update history display
         updateChordHistory();
+        
+        // Update last add time
+        lastHistoryAddTime = currentTime;
     }
     
     // Update the chord history display
