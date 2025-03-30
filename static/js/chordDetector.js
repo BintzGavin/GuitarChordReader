@@ -42,13 +42,13 @@ class ChordDetector {
             // Open chord shapes on acoustic guitar often have certain notes emphasized
             'C': { type: 'Major', template: [3, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 1] }, // E and G emphasized, some C overtone
             'D': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 2, 0, 0, 3, 0, 0] }, // A and F# emphasized
-            // Enhanced E chord template - major focus on E and B notes
-            'E': { type: 'Major', template: [0, 0, 0, 0, 5, 0, 0, 0, 3, 0, 0, 2] }, // Strong emphasis on root (E), with B and G#
+            // Further enhanced E chord template with stronger emphasis on open string notes
+            'E': { type: 'Major', template: [0, 0, 0, 0, 7, 0, 0, 0, 4, 0, 0, 2] }, // Very strong emphasis on root (E), with B and G#
             // Completely reworked G chord template for acoustic guitar - much stronger emphasis on G note
             'G': { type: 'Major', template: [0, 0, 2, 0, 0, 0, 2, 5, 0, 0, 0, 3] }, // Very strong G, with D and B support
             'A': { type: 'Major', template: [0, 1, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0] }, // E, A emphasized
             
-            'Em': { type: 'Minor', template: [0, 0, 0, 0, 3, 0, 0, 2, 0, 0, 0, 1] }, // E emphasized, G and B
+            'Em': { type: 'Minor', template: [0, 0, 0, 0, 6, 0, 0, 3, 0, 0, 0, 2] }, // Strongly enhanced E minor template
             'Am': { type: 'Minor', template: [2, 0, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0] }, // A, E emphasized, some C
             'Dm': { type: 'Minor', template: [0, 0, 2, 0, 0, 3, 0, 0, 0, 1, 0, 0] }, // D, F emphasized
         };
@@ -63,9 +63,20 @@ class ChordDetector {
         
         // Settings
         this.minVolumeThreshold = 0.01; // Keep this low to catch quieter playing
-        this.stabilityThreshold = 5; // Much higher stability requirement to reduce jumpiness
+        this.stabilityThreshold = 6; // Higher stability requirement to reduce jumpiness
         this.noiseFloor = 0.15; // Lower to capture more harmonic content
         this.chordDecayTime = 8; // Frames to keep showing previous chord after silence
+        
+        // Previous chromagram data for smoothing
+        this.prevChromagrams = [];
+        this.chromagramSmoothingFrames = 3; // Number of frames to use for smoothing
+        
+        // Chord penalties to adjust for over-detection
+        this.chordPenalties = {
+            'F': 0.15,  // Penalize F chord which is over-detected
+            'F#': 0.1,  // Slight penalty for F#
+            'C#': 0.08  // Slight penalty for C#
+        };
     }
 
     /**
@@ -108,9 +119,29 @@ class ChordDetector {
         
         this.noChordFrames = 0;
         
-        // Normalize the chromagram further (sometimes helpful)
-        const maxVal = Math.max(...chromagram);
-        const normalizedChroma = chromagram.map(val => val / maxVal);
+        // Store this chromagram for smoothing
+        this.prevChromagrams.push([...chromagram]);
+        if (this.prevChromagrams.length > this.chromagramSmoothingFrames) {
+            this.prevChromagrams.shift();
+        }
+        
+        // Apply smoothing if we have enough frames
+        let smoothedChroma = [...chromagram];
+        if (this.prevChromagrams.length === this.chromagramSmoothingFrames) {
+            // Create a smoothed chromagram by averaging recent frames
+            smoothedChroma = new Array(12).fill(0);
+            
+            for (let i = 0; i < 12; i++) {
+                for (let j = 0; j < this.prevChromagrams.length; j++) {
+                    smoothedChroma[i] += this.prevChromagrams[j][i];
+                }
+                smoothedChroma[i] /= this.prevChromagrams.length;
+            }
+        }
+        
+        // Normalize the chromagram
+        const maxVal = Math.max(...smoothedChroma);
+        const normalizedChroma = smoothedChroma.map(val => val / maxVal);
         
         // Apply noise floor - zero out low values
         const cleanedChroma = normalizedChroma.map(val => val < this.noiseFloor ? 0 : val);
@@ -119,12 +150,26 @@ class ChordDetector {
         let bestMatchScore = -Infinity;
         let bestMatchChord = '';
         
-        // Try each chord template
+        // Try each chord template with penalties applied
         for (const [chordName, chordInfo] of Object.entries(this.templates)) {
             const template = chordInfo.template;
             
             // Calculate cosine similarity between template and chromagram
-            const similarity = this.cosineSimilarity(cleanedChroma, template);
+            let similarity = this.cosineSimilarity(cleanedChroma, template);
+            
+            // Apply penalty to over-detected chords (especially F)
+            if (this.chordPenalties[chordName]) {
+                similarity -= this.chordPenalties[chordName];
+            }
+            
+            // Special handling for E/Em - boost if certain patterns match
+            // This helps with detection of these difficult chords
+            if (chordName === 'E' || chordName === 'Em') {
+                // E chord often has a strong E (4th index) and B (11th index) 
+                if (cleanedChroma[4] > 0.7 && cleanedChroma[11] > 0.3) {
+                    similarity += 0.1; // Boost similarity
+                }
+            }
             
             // Find the best match
             if (similarity > bestMatchScore) {
@@ -146,11 +191,13 @@ class ChordDetector {
         // Adjust thresholds for specific chords that need more leniency
         let threshold = 0.5; // Default threshold
         
-        // Special handling for E and G chords
+        // Special handling for E, Em, and G chords
         if (bestMatchChord === 'G') {
             threshold = 0.40; // Much more lenient for G
         } else if (bestMatchChord === 'E') {
             threshold = 0.42; // More lenient for E
+        } else if (bestMatchChord === 'Em') {
+            threshold = 0.38; // Even more lenient for Em which is harder to detect
         }
         
         // Calculate base confidence from similarity score

@@ -54,21 +54,46 @@ document.addEventListener('DOMContentLoaded', function() {
         if (results.chord && results.chord.name) {
             updateChordDisplay(results.chord);
             
-            // Track chord for history with stability
-            if (results.chord.name === pendingHistoryChord && results.chord.confidence > 0.3) {
+            // Track chord for history with stability - more sophisticated approach
+            if (results.chord.name === pendingHistoryChord) {
                 // Lower confidence threshold makes detection more sensitive
-                chordHistoryStability++;
+                if (results.chord.confidence > 0.25) {
+                    chordHistoryStability++;
                 
-                // Special handling for E and G chords - faster to add to history
-                const isSpecialChord = (results.chord.name === 'E' || results.chord.name === 'G');
-                const effectiveThreshold = isSpecialChord ? 
-                    Math.floor(chordHistoryThreshold * 0.7) : chordHistoryThreshold;
-                
-                // Add to history if the same chord has been stable for several frames
-                if (chordHistoryStability >= effectiveThreshold) {
-                    addChordToHistory(results.chord);
-                    chordHistoryStability = 0; // Reset after adding to prevent duplicates
+                    // Special handling for E, Em and G chords - faster to add to history
+                    const isSpecialChord = (results.chord.name === 'E' || 
+                                           results.chord.name === 'G' || 
+                                           (results.chord.name === 'E' && results.chord.type === 'Minor'));
+                    
+                    // Reduce threshold for special chords to make them easier to detect
+                    const effectiveThreshold = isSpecialChord ? 
+                        Math.floor(chordHistoryThreshold * 0.6) : chordHistoryThreshold;
+                    
+                    // Extra reduction for Em which is particularly difficult
+                    const finalThreshold = (results.chord.name === 'E' && results.chord.type === 'Minor') ?
+                        Math.floor(effectiveThreshold * 0.8) : effectiveThreshold;
+                    
+                    // Add to history if the same chord has been stable for several frames
+                    if (chordHistoryStability >= finalThreshold) {
+                        addChordToHistory(results.chord);
+                        chordHistoryStability = 0; // Reset after adding to prevent duplicates
+                    }
                 }
+            } else if (pendingHistoryChord === 'F' && results.chord.name !== 'F') {
+                // Special case to prevent F from being detected too easily
+                // If we've recorded too many F's in a row (more than 2), require more stability
+                const recentFs = recentChords.slice(-3).filter(chord => chord.name === 'F').length;
+                if (recentFs >= 2) {
+                    // Reset stability to help switch away from F more easily
+                    pendingHistoryChord = results.chord.name;
+                    chordHistoryStability = Math.floor(chordHistoryThreshold * 0.3);
+                } else {
+                    pendingHistoryChord = results.chord.name;
+                    chordHistoryStability = 0;
+                }
+            } else {
+                pendingHistoryChord = results.chord.name;
+                chordHistoryStability = 0;
             }
         } else {
             // If no chord detected, show waiting message
