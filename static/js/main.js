@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const maxHistoryLength = 6; // Maximum number of chords to show in history
     let lastDetectedChord = '';
     
+    // Stability tracking for chord history
+    let chordHistoryStability = 0;
+    const chordHistoryThreshold = 5; // Need several consecutive frames of the same chord to add to history
+    let pendingHistoryChord = null;
+    
     // Initialize the application
     async function initialize() {
         updateStatus('Initializing audio system...');
@@ -47,6 +52,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update chord display if a chord is detected
         if (results.chord && results.chord.name) {
             updateChordDisplay(results.chord);
+            
+            // Track chord for history with stability
+            if (results.chord.name === pendingHistoryChord && results.chord.confidence > 0.4) {
+                chordHistoryStability++;
+                
+                // Add to history if the same chord has been stable for several frames
+                if (chordHistoryStability >= chordHistoryThreshold) {
+                    addChordToHistory(results.chord);
+                    chordHistoryStability = 0; // Reset after adding to prevent duplicates
+                }
+            }
         } else {
             // If no chord detected, show waiting message
             if (lastDetectedChord) {
@@ -54,6 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 chordType.textContent = 'Listening...';
                 confidenceIndicator.className = 'confidence-indicator';
                 lastDetectedChord = '';
+                pendingHistoryChord = null;
+                chordHistoryStability = 0;
             }
         }
     }
@@ -92,9 +110,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 void chordDisplay.offsetWidth; // Trigger reflow
                 chordDisplay.classList.add('chord-changed');
                 
-                // Add to history if it's stable enough
-                if (chord.confidence > 0.4 && chord.name) {
-                    addChordToHistory(chord);
+                // Reset history stability for new chord
+                if (pendingHistoryChord !== chord.name) {
+                    pendingHistoryChord = chord.name;
+                    chordHistoryStability = 0;
                 }
                 
                 lastDetectedChord = chord.name;

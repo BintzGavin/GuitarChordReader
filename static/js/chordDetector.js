@@ -43,7 +43,8 @@ class ChordDetector {
             'C': { type: 'Major', template: [3, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 1] }, // E and G emphasized, some C overtone
             'D': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 2, 0, 0, 3, 0, 0] }, // A and F# emphasized
             'E': { type: 'Major', template: [0, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 3] }, // E, B emphasized
-            'G': { type: 'Major', template: [0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 1] }, // G, B emphasized, some D
+            // Enhanced G chord template - more weight on G and B, added weight on D (the 5th)
+            'G': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 0, 4, 0, 0, 0, 2] }, // Stronger G and B emphasis, added D
             'A': { type: 'Major', template: [0, 1, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0] }, // E, A emphasized
             
             'Em': { type: 'Minor', template: [0, 0, 0, 0, 3, 0, 0, 2, 0, 0, 0, 1] }, // E emphasized, G and B
@@ -60,9 +61,10 @@ class ChordDetector {
         this.noChordFrames = 0;
         
         // Settings
-        this.minVolumeThreshold = 0.01; // Lower threshold to be more sensitive
-        this.stabilityThreshold = 2; // Reduced for faster response
+        this.minVolumeThreshold = 0.015; // Slightly higher to avoid false triggers
+        this.stabilityThreshold = 3; // Increased for more stability
         this.noiseFloor = 0.2; // Lower threshold to capture more notes
+        this.chordDecayTime = 12; // Frames to keep showing previous chord after silence
     }
 
     /**
@@ -72,10 +74,12 @@ class ChordDetector {
      * @returns {Object} Detected chord information (name, type, confidence)
      */
     detectChord(chromagram, volume) {
-        // Return no chord if volume is below threshold
+        // Handle low volume
         if (volume < this.minVolumeThreshold) {
             this.noChordFrames++;
-            if (this.noChordFrames > 5) { // After 5 frames of silence
+            
+            // Return no chord only after significant silence
+            if (this.noChordFrames > this.chordDecayTime) {
                 this.previousChord = '';
                 this.chordStability = 0;
                 return { 
@@ -85,16 +89,19 @@ class ChordDetector {
                     isStable: false
                 };
             }
+            
             // Return the previous chord with decreasing confidence
+            // This creates a smoother transition when stopping playing
             if (this.previousChord) {
-                const decayFactor = Math.max(0, 1 - (this.noChordFrames / 10));
+                const decayFactor = Math.max(0, 1 - (this.noChordFrames / this.chordDecayTime));
                 return {
                     name: this.previousChord.split('m')[0], // Remove 'm' suffix if present
                     type: this.previousChord.includes('m') ? 'Minor' : 'Major',
-                    confidence: 0.5 * decayFactor,
+                    confidence: 0.7 * decayFactor, // Higher starting confidence for stability
                     isStable: this.chordStability >= this.stabilityThreshold
                 };
             }
+            
             return { name: '', type: '', confidence: 0, isStable: false };
         }
         
@@ -134,10 +141,18 @@ class ChordDetector {
         }
         
         // Calculate confidence based on similarity score and stability
-        // Be more lenient with the base similarity threshold (0.5 instead of 0.6)
-        const confidenceBase = Math.max(0, (bestMatchScore - 0.5) * 2.0); // Scale similarity to 0-1 range
+        
+        // Adjust threshold for G chord specifically (more lenient)
+        const threshold = bestMatchChord === 'G' ? 0.45 : 0.5;
+        
+        // Calculate base confidence from similarity score
+        const confidenceBase = Math.max(0, (bestMatchScore - threshold) * 2.0); // Scale to 0-1 range
+        
+        // Calculate stability factor (how long we've seen this chord)
         const stabilityFactor = Math.min(1, this.chordStability / this.stabilityThreshold);
-        const confidence = confidenceBase * 0.6 + stabilityFactor * 0.4; // Give more weight to stability
+        
+        // Weighted combination with more weight on stability for smoother transitions
+        const confidence = confidenceBase * 0.4 + stabilityFactor * 0.6; // Stability has more weight now
         
         return {
             name: bestMatchChord.replace('m', ''), // Remove 'm' suffix for display
