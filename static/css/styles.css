@@ -1,0 +1,95 @@
+/* Chord display styles */
+.chord-display {
+    padding: 2rem;
+    margin: 1rem auto;
+    max-width: 400px;
+    border-radius: 1rem;
+    background-color: var(--bs-dark);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.chord-name {
+    font-size: 5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.chord-type {
+    font-size: 1.5rem;
+    color: var(--bs-secondary);
+    transition: all 0.3s ease;
+}
+
+/* Audio meter styles */
+.meter-container {
+    height: 2rem;
+    background-color: var(--bs-dark);
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.volume-meter {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(to right, var(--bs-success), var(--bs-warning), var(--bs-danger));
+    transition: width 0.1s ease;
+    border-radius: 0.5rem;
+}
+
+/* Chord history styles */
+.chord-history {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 3rem;
+}
+
+.chord-history-item {
+    padding: 0.5rem 1rem;
+    background-color: var(--bs-dark);
+    border-radius: 0.5rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.status-message {
+    color: var(--bs-info);
+}
+
+/* Confidence indicator */
+.confidence-indicator {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background-color: var(--bs-secondary);
+}
+
+.confidence-high {
+    background-color: var(--bs-success);
+}
+
+.confidence-medium {
+    background-color: var(--bs-warning);
+}
+
+.confidence-low {
+    background-color: var(--bs-danger);
+}
+
+/* Animation for chord change */
+@keyframes chord-changed {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.chord-changed {
+    animation: chord-changed 0.3s ease;
+}
