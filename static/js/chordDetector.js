@@ -79,7 +79,8 @@ class ChordDetector {
             'F#': 0.1,  // Slight penalty for F#
             'C#': 0.08, // Slight penalty for C#
             'Em': 0.12, // Penalize Em which gets falsely detected
-            'Fmaj7': 0.14 // Penalize Fmaj7 to prevent over-detection
+            'Fmaj7': 0.14, // Penalize Fmaj7 to prevent over-detection
+            'C': 0.07   // Slight penalty for C which is now over-detected
         };
     }
 
@@ -177,19 +178,20 @@ class ChordDetector {
             
             // Special handling for Fmaj7 vs C
             if (chordName === 'Fmaj7') {
-                // Fmaj7 should have both F (index 5) and E (index 4) present with specific strength patterns
-                if (cleanedChroma[5] > 0.6 && cleanedChroma[4] > 0.5 && cleanedChroma[0] > 0.3) {
-                    similarity += 0.08; // Smaller boost for Fmaj7 when both F and E and C are present
+                // Stricter requirement for Fmaj7 - needs very strong F and E to get boost
+                if (cleanedChroma[5] > 0.7 && cleanedChroma[4] > 0.6 && cleanedChroma[0] > 0.3) {
+                    similarity += 0.07; // Moderate boost when clearly a Fmaj7 pattern
                 }
             } else if (chordName === 'C') {
-                // Boost C detection as long as G (index 7) is present
-                if (cleanedChroma[0] > 0.5 && cleanedChroma[7] > 0.4) {
-                    similarity += 0.09; // Boost C when C and G are present (the most important notes)
+                // More moderate boost for C when C and G present
+                if (cleanedChroma[0] > 0.6 && cleanedChroma[7] > 0.5) {
+                    similarity += 0.05; // Smaller boost for C chord
                 }
                 
-                // Only penalize C in extreme cases where E is very strong (clear Fmaj7)
-                if (cleanedChroma[4] > 0.8 && cleanedChroma[5] > 0.7) {
-                    similarity -= 0.08; // Small penalty for C in extreme cases
+                // Penalize C when E is strong and F is present (suggesting Fmaj7)
+                // But only when these are very obvious strong indicators of Fmaj7
+                if (cleanedChroma[4] > 0.75 && cleanedChroma[5] > 0.7) {
+                    similarity -= 0.08; // Smaller penalty for C only in clear Fmaj7 cases
                 }
             }
             
@@ -227,8 +229,7 @@ class ChordDetector {
         } else if (bestMatchChord === 'Fmaj7') {
             threshold = 0.47; // Higher threshold for Fmaj7 to prevent over-detection
         } else if (bestMatchChord === 'C') {
-            // Make C easier to detect in general
-            threshold = 0.42; // More lenient for C as it's a common chord
+            threshold = 0.45; // Balanced threshold for C (not too lenient, not too strict)
             
             // Only in extreme cases with very strong E and F notes (suggesting Fmaj7) do we make C harder to detect 
             const hasStrongENote = cleanedChroma[4] > 0.75; // Very strong E note (idx 4)
