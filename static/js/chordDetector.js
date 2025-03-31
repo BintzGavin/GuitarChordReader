@@ -35,7 +35,7 @@ class ChordDetector {
             'Bm': { type: 'Minor', template: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
             
             // Add 7th chords, dominant 7ths, etc. as needed
-            'Fmaj7': { type: 'Major 7', template: [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1] }, // F Major 7th (F, A, C, E)
+            'Fmaj7': { type: 'Major 7', template: [2, 0, 0, 0, 1, 2, 0, 0, 0, 1, 0, 2] }, // F Major 7th (F, A, C, E) - enhanced to be more distinct from C
         };
         
         // Common acoustic guitar chord voicings - adjusted templates based on typical harmonic content
@@ -52,7 +52,7 @@ class ChordDetector {
             
             'Em': { type: 'Minor', template: [0, 0, 0, 0, 6, 0, 0, 3, 0, 0, 0, 2] }, // Strongly enhanced E minor template
             'Am': { type: 'Minor', template: [3, 0, 0, 0, 4, 0, 0, 0, 0, 2, 0, 0] }, // Enhanced Am with stronger A and E
-            'Fmaj7': { type: 'Major 7', template: [2, 0, 0, 0, 1, 3, 0, 0, 0, 1, 0, 2] }, // F Major 7th optimized for acoustic
+            'Fmaj7': { type: 'Major 7', template: [3, 0, 0, 0, 1, 4, 0, 0, 0, 2, 0, 2] }, // F Major 7th optimized for acoustic, more different from C
         };
         
         // Combine templates, with acoustic templates taking precedence
@@ -77,7 +77,8 @@ class ChordDetector {
         this.chordPenalties = {
             'F': 0.15,  // Penalize F chord which is over-detected
             'F#': 0.1,  // Slight penalty for F#
-            'C#': 0.08  // Slight penalty for C#
+            'C#': 0.08, // Slight penalty for C#
+            'Em': 0.12  // Penalize Em which gets falsely detected
         };
     }
 
@@ -173,6 +174,19 @@ class ChordDetector {
                 }
             }
             
+            // Special handling for Fmaj7 vs C
+            if (chordName === 'Fmaj7') {
+                // Fmaj7 should have both F (index 5) and E (index 4) present
+                if (cleanedChroma[5] > 0.5 && cleanedChroma[4] > 0.4) {
+                    similarity += 0.12; // Boost Fmaj7 similarity when both F and E are present
+                }
+            } else if (chordName === 'C') {
+                // Penalize C detection if there's a strong E note (suggesting Fmaj7)
+                if (cleanedChroma[4] > 0.7 && cleanedChroma[5] > 0.4) {
+                    similarity -= 0.1; // Decrease similarity for C when E and F are present
+                }
+            }
+            
             // Find the best match
             if (similarity > bestMatchScore) {
                 bestMatchScore = similarity;
@@ -199,11 +213,20 @@ class ChordDetector {
         } else if (bestMatchChord === 'E') {
             threshold = 0.42; // More lenient for E
         } else if (bestMatchChord === 'Em') {
-            threshold = 0.38; // Even more lenient for Em which is harder to detect
+            threshold = 0.45; // Less lenient for Em to prevent false detections
         } else if (bestMatchChord === 'Dm') {
             threshold = 0.39; // More lenient for Dm
         } else if (bestMatchChord === 'D') {
             threshold = 0.41; // More lenient for D
+        } else if (bestMatchChord === 'Fmaj7') {
+            threshold = 0.43; // Special threshold for Fmaj7 to prevent confusion with C
+        } else if (bestMatchChord === 'C' && this.prevChromagrams.length > 1) {
+            // For C, check if there's evidence of an F or E note that would suggest Fmaj7 instead
+            const hasENote = cleanedChroma[4] > 0.6; // Strong E note (idx 4)
+            const hasFNote = cleanedChroma[5] > 0.6; // Strong F note (idx 5)
+            if (hasENote && hasFNote) {
+                threshold = 0.47; // Make C harder to detect when E and F are present together (suggesting Fmaj7)
+            }
         }
         
         // Calculate base confidence from similarity score
