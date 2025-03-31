@@ -243,7 +243,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 void chordDisplay.offsetWidth; // Trigger reflow
                 chordDisplay.classList.add('chord-changed');
                 
-                // Reset history stability for new chord
+                console.log("New chord detected:", chord.name, "with confidence", chord.confidence.toFixed(2));
+                
+                // SIMPLIFIED APPROACH: Directly add new chords to history with minimal filtering
+                // Only if different from last chord and reasonable confidence
+                if (chord.confidence > 0.4) {
+                    // Check if it's different from the last chord in history
+                    const isNewInHistory = recentChords.length === 0 || 
+                                         recentChords[recentChords.length-1].name !== chord.name;
+                    
+                    // Ensure we don't add too frequently
+                    const now = Date.now();
+                    const timeSinceLastAdd = now - lastHistoryAddTime;
+                    
+                    if (isNewInHistory && timeSinceLastAdd > 800) {
+                        console.log("Adding to history:", chord.name);
+                        // Directly add to history with minimal filtering
+                        addChordToHistorySimple(chord);
+                    }
+                }
+                
+                // Keep tracking for the complex system too
                 if (pendingHistoryChord !== chord.name) {
                     pendingHistoryChord = chord.name;
                     chordHistoryStability = 0;
@@ -265,6 +285,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 confidenceIndicator.className = 'confidence-indicator confidence-low';
             }
         }
+    }
+    
+    // Simplified version of addChordToHistory with minimal filtering
+    function addChordToHistorySimple(chord) {
+        // Just add the chord to history with minimal checks
+        recentChords.push({
+            name: chord.name,
+            type: chord.type
+        });
+        
+        // Update the timestamp
+        lastHistoryAddTime = Date.now();
+        
+        // Limit history length
+        if (recentChords.length > maxHistoryLength) {
+            recentChords.shift();
+        }
+        
+        // Update history display
+        updateChordHistory();
+        
+        // Log
+        console.log("ADDED TO HISTORY:", chord.name);
+        console.log("Current chords in history:", recentChords.map(c => c.name));
     }
     
     // Add a chord to the history display with much stronger debouncing
@@ -341,8 +385,36 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update the chord history display
     function updateChordHistory() {
+        console.log("updateChordHistory called, chords to display:", recentChords);
+        
+        // Make sure we have a valid reference to the chord history element
+        if (!chordHistory) {
+            console.error("Chord history DOM element not found!");
+            chordHistory = document.getElementById('chord-history');
+            if (!chordHistory) {
+                console.error("Still can't find #chord-history element!");
+                return;
+            }
+        }
+        
+        // Clear existing history
         chordHistory.innerHTML = '';
         
+        if (recentChords.length === 0) {
+            console.log("No chords in history to display");
+            // Add a placeholder message when empty
+            const emptyElement = document.createElement('div');
+            emptyElement.className = 'chord-history-empty';
+            emptyElement.textContent = 'No chords played yet';
+            emptyElement.style.opacity = 0.5;
+            chordHistory.appendChild(emptyElement);
+            return;
+        }
+        
+        // Debug what we're about to show
+        console.log(`Displaying ${recentChords.length} chords in history`);
+        
+        // Add each chord to the display
         recentChords.forEach((chord, index) => {
             const chordElement = document.createElement('div');
             chordElement.className = 'chord-history-item';
@@ -353,6 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
             chordElement.style.opacity = opacity;
             
             chordHistory.appendChild(chordElement);
+            console.log(`Added ${chord.name} to history display`);
         });
     }
     
