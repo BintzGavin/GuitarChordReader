@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Stability tracking for chord history
     let chordHistoryStability = 0;
-    const chordHistoryThreshold = 8; // Need many consecutive frames of the same chord to add to history
+    const chordHistoryThreshold = 5; // Reduced from 8 - fewer consecutive frames required
     let pendingHistoryChord = null;
     let lastHistoryAddTime = 0; // Track when we last added a chord to history
     
@@ -54,13 +54,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof lastAttackTime === 'undefined') {
             lastAttackTime = 0;
             strumInProgress = false;
-            requiredStableFrames = 10; // Require many stable frames
-            stableFrameThreshold = { // By chord name
-                'E': 7,    // Easier to detect
-                'Em': 6,   // Even easier (most difficult before)
-                'G': 7,    // Easier
-                'F': 14,   // Harder (was too sensitive)
-                'default': 10
+            requiredStableFrames = 6; // Reduced from 10
+            stableFrameThreshold = { // By chord name - all reduced
+                'E': 5,    // Easier to detect (reduced from 7)
+                'Em': 4,   // Even easier (reduced from 6)
+                'G': 5,    // Easier (reduced from 7)
+                'F': 8,    // Still harder but reduced from 14
+                'default': 6  // Reduced from 10
             };
             
             // Keep track of last few chords detected (raw, not in history)
@@ -70,12 +70,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Track activity/decay state
             lastActiveTime = 0;
-            activityTimeout = 2000; // ms of no activity before decay
+            activityTimeout = 1500; // Reduced from 2000ms - shorter time before decay 
             lastVolumeActivity = 0;
-            volumeActivityThreshold = 0.2; // Volume above which we consider "activity"
+            volumeActivityThreshold = 0.15; // Reduced from 0.2 - lower threshold for "activity"
             
             // Noise control
-            minVolumeForChord = 0.12; // Minimum volume required for chord detection
+            minVolumeForChord = 0.08; // Reduced from 0.12 - less strict minimum volume
             inNoiseHandlingMode = false; // Special noise handling active
 
             // Create a map to track rejected chords
@@ -138,8 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Calculate what percentage of recent detections are this chord
                 const percentSameChord = countSameChord / lastChordBuffer.length;
                 
-                // Check if we're seeing a truly stable chord pattern (>70% same chord)
-                if (percentSameChord > 0.7) {
+                // Check if we're seeing a relatively stable chord pattern (>60% same chord - reduced from 70%)
+                if (percentSameChord > 0.6) {
                     // We have a relatively stable chord, but we need additional checks
                     
                     // Check if this chord has been rejected too many times recently
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // If we've been stable long enough, add to history
                         if (chordHistoryStability >= framesRequired && 
-                            results.chord.confidence > 0.3) {
+                            results.chord.confidence > 0.2) { // Reduced confidence requirement from 0.3 to 0.2
                             
                             // Special handler for F chord - check if we're seeing
                             // too many Fs - if yes, reject this detection
@@ -271,14 +271,14 @@ document.addEventListener('DOMContentLoaded', function() {
             window.chordHistoryState = {
                 chordCounts: {}, // Track how many times we've seen each chord recently
                 lastStrumTime: 0, // Track when the last strum happened
-                minTimeBetweenStrums: 1500, // Minimum ms between different strums (prevent multiple)
-                chordLockoutTime: 3000,  // How long to prevent repeating the same chord
-                chordConfidenceThresholds: { // Min confidence to add to history by chord
-                    'E': 0.4,
-                    'Em': 0.35, 
-                    'G': 0.4,
-                    'F': 0.55, // Higher threshold for F to prevent false detections
-                    'default': 0.45
+                minTimeBetweenStrums: 800, // Minimum ms between different strums (reduced from 1500ms)
+                chordLockoutTime: 1500,  // How long to prevent repeating the same chord (reduced from 3000ms)
+                chordConfidenceThresholds: { // Min confidence to add to history by chord (reduced thresholds)
+                    'E': 0.3,
+                    'Em': 0.25, 
+                    'G': 0.3,
+                    'F': 0.45, // Still higher threshold for F to prevent false detections
+                    'default': 0.35
                 },
                 lastChordsByName: {} // Last time we added each chord by name
             };
