@@ -47,6 +47,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle audio processing results with attack detection
     function handleAudioProcessed(results) {
+        // Debug logging to see what data we're getting
+        console.log(`Volume: ${results.volume.toFixed(2)}, Chord: ${results.chord ? results.chord.name : 'none'}, Confidence: ${results.chord ? results.chord.confidence.toFixed(2) : 0}`);
+        
         // Update volume meter
         updateVolumeMeter(results.volume);
         
@@ -332,6 +335,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Log detection for debugging
         console.log(`Added ${chord.name} to history with confidence ${chord.confidence.toFixed(2)}`);
+        // Add additional debug logging to help diagnose issues
+        console.log("Current chords in history:", recentChords.map(c => c.name));
     }
     
     // Update the chord history display
