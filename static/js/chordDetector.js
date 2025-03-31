@@ -35,13 +35,15 @@ class ChordDetector {
             'Bm': { type: 'Minor', template: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
             
             // Add 7th chords, dominant 7ths, etc. as needed
+            'Fmaj7': { type: 'Major 7', template: [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1] }, // F Major 7th (F, A, C, E)
         };
         
         // Common acoustic guitar chord voicings - adjusted templates based on typical harmonic content
         this.acousticGuitarTemplates = {
             // Open chord shapes on acoustic guitar often have certain notes emphasized
             'C': { type: 'Major', template: [3, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 1] }, // E and G emphasized, some C overtone
-            'D': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 2, 0, 0, 3, 0, 0] }, // A and F# emphasized
+            'D': { type: 'Major', template: [0, 0, 4, 0, 0, 0, 3, 0, 0, 2, 0, 0] }, // D with F# and A
+            'Dm': { type: 'Minor', template: [0, 0, 4, 0, 0, 3, 0, 0, 0, 2, 0, 0] }, // Enhanced Dm with stronger D and F notes
             // Further enhanced E chord template with stronger emphasis on open string notes
             'E': { type: 'Major', template: [0, 0, 0, 0, 7, 0, 0, 0, 4, 0, 0, 2] }, // Very strong emphasis on root (E), with B and G#
             // Completely reworked G chord template for acoustic guitar - much stronger emphasis on G note
@@ -49,8 +51,8 @@ class ChordDetector {
             'A': { type: 'Major', template: [0, 1, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0] }, // E, A emphasized
             
             'Em': { type: 'Minor', template: [0, 0, 0, 0, 6, 0, 0, 3, 0, 0, 0, 2] }, // Strongly enhanced E minor template
-            'Am': { type: 'Minor', template: [2, 0, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0] }, // A, E emphasized, some C
-            'Dm': { type: 'Minor', template: [0, 0, 2, 0, 0, 3, 0, 0, 0, 1, 0, 0] }, // D, F emphasized
+            'Am': { type: 'Minor', template: [3, 0, 0, 0, 4, 0, 0, 0, 0, 2, 0, 0] }, // Enhanced Am with stronger A and E
+            'Fmaj7': { type: 'Major 7', template: [2, 0, 0, 0, 1, 3, 0, 0, 0, 1, 0, 2] }, // F Major 7th optimized for acoustic
         };
         
         // Combine templates, with acoustic templates taking precedence
@@ -191,13 +193,17 @@ class ChordDetector {
         // Adjust thresholds for specific chords that need more leniency
         let threshold = 0.5; // Default threshold
         
-        // Special handling for E, Em, and G chords
+        // Special handling for specific chords
         if (bestMatchChord === 'G') {
             threshold = 0.40; // Much more lenient for G
         } else if (bestMatchChord === 'E') {
             threshold = 0.42; // More lenient for E
         } else if (bestMatchChord === 'Em') {
             threshold = 0.38; // Even more lenient for Em which is harder to detect
+        } else if (bestMatchChord === 'Dm') {
+            threshold = 0.39; // More lenient for Dm
+        } else if (bestMatchChord === 'D') {
+            threshold = 0.41; // More lenient for D
         }
         
         // Calculate base confidence from similarity score
@@ -209,9 +215,23 @@ class ChordDetector {
         // Weighted combination with more weight on stability for smoother transitions
         const confidence = confidenceBase * 0.4 + stabilityFactor * 0.6; // Stability has more weight now
         
+        // Determine chord type and display name
+        let displayName = bestMatchChord;
+        let chordType = 'Major';
+        
+        if (bestMatchChord.includes('maj7')) {
+            displayName = bestMatchChord.replace('maj7', '');
+            chordType = 'Major 7';
+        } else if (bestMatchChord.includes('m')) {
+            displayName = bestMatchChord.replace('m', '');
+            chordType = 'Minor';
+        } else {
+            displayName = bestMatchChord;
+        }
+        
         return {
-            name: bestMatchChord.replace('m', ''), // Remove 'm' suffix for display
-            type: bestMatchChord.includes('m') ? 'Minor' : 'Major',
+            name: displayName,
+            type: chordType,
             confidence: confidence,
             isStable: this.chordStability >= this.stabilityThreshold
         };

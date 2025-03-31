@@ -324,7 +324,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     'E': 0.3,
                     'Em': 0.25, 
                     'G': 0.3,
+                    'D': 0.3, // Threshold for D major
+                    'Dm': 0.28, // Lower threshold for Dm
                     'F': 0.45, // Still higher threshold for F to prevent false detections
+                    'Fmaj7': 0.35, // Threshold for Fmaj7
                     'default': 0.35
                 },
                 lastChordsByName: {} // Last time we added each chord by name
@@ -418,7 +421,15 @@ document.addEventListener('DOMContentLoaded', function() {
         recentChords.forEach((chord, index) => {
             const chordElement = document.createElement('div');
             chordElement.className = 'chord-history-item';
-            chordElement.textContent = chord.name + (chord.type === 'Minor' ? 'm' : '');
+            
+            // Display chord name with appropriate suffix based on type
+            if (chord.type === 'Minor') {
+                chordElement.textContent = chord.name + 'm';
+            } else if (chord.type === 'Major 7') {
+                chordElement.textContent = chord.name + 'maj7';
+            } else {
+                chordElement.textContent = chord.name;
+            }
             
             // Add opacity based on position (newer chords are more opaque)
             const opacity = 0.5 + (index / recentChords.length) * 0.5;
