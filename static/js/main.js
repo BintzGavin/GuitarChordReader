@@ -203,16 +203,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 pendingHistoryChord = null;
                 chordHistoryStability = 0;
             }
-        } else {
-            // If no chord detected, show waiting message
-            if (lastDetectedChord) {
-                chordName.textContent = '...';
-                chordType.textContent = 'Listening...';
-                confidenceIndicator.className = 'confidence-indicator';
-                lastDetectedChord = '';
-                pendingHistoryChord = null;
-                chordHistoryStability = 0;
-            }
         }
     }
     
