@@ -333,43 +333,78 @@ class AudioProcessor {
         // Init chromagram array
         const chromagram = Array(12).fill(0);
         
-        // Initialize chromagram history if not set
+        // Initialize chromagram history and advanced processing settings if not set
         if (!this.chromagramHistory) {
             this.chromagramHistory = [];
             this.chromagramHistorySize = 5; // Number of frames to keep
             this.energyThreshold = 0.05; // Higher energy threshold to reduce false activations
             this.noteEnergyFloor = 0.015; // Note-specific energy floor to filter out noise
+            
+            // Advanced feature extraction settings
+            this.harmonicProductSpectrum = {
+                enabled: true,   // Enable Harmonic Product Spectrum for better fundamental detection
+                harmonics: 3,    // Number of harmonics to consider
+                weights: [1.0, 0.85, 0.55] // Weights for each harmonic (fundamental has highest weight)
+            };
+            
+            // Constant-Q Transform approximation settings (12 bins per octave, matching notes)
+            this.constantQ = {
+                enabled: true,
+                binsPerOctave: 12,
+                minFreq: 65.4064, // C2
+                maxFreq: 1046.5, // C6 - covers standard guitar range plus harmonics
+                q: 1/(2**(1/12) - 1) // Q factor for CQT
+            };
+            
+            // Onset detection settings
+            this.onsetDetection = {
+                enabled: true,
+                bufferSize: 8,              // Number of frames to analyze
+                energyThreshold: 1.4,       // Energy increase required for onset
+                spectralFluxThreshold: 2.0, // Spectral change required for onset
+                lastOnsetTime: 0,           // Last detected onset time
+                minTimeBetweenOnsets: 150,  // Minimum time between onsets (ms)
+                energyHistory: [],          // History of energy values
+                spectralHistory: []         // History of spectral data
+            };
+            
+            // Advanced acoustic guitar modeling
+            this.guitarModel = {
+                // Frequency bins centered around guitar string fundamentals and their first few harmonics
+                openStrings: [
+                    { note: 'E2', freq: 82.41, harmonics: [82.41, 164.82, 247.23, 329.64] },
+                    { note: 'A2', freq: 110.0, harmonics: [110.0, 220.0, 330.0, 440.0] },
+                    { note: 'D3', freq: 146.83, harmonics: [146.83, 293.66, 440.49, 587.32] },
+                    { note: 'G3', freq: 196.0, harmonics: [196.0, 392.0, 588.0, 784.0] },
+                    { note: 'B3', freq: 246.94, harmonics: [246.94, 493.88, 740.82, 987.76] },
+                    { note: 'E4', freq: 329.63, harmonics: [329.63, 659.26, 988.89, 1318.52] }
+                ],
+                // Elaborate weighting scheme for guitar-specific frequencies
+                frequencyWeights: {}
+            };
+            
+            // Initialize the guitar frequency weights with a more detailed model
+            this._initializeGuitarFrequencyWeights();
         }
         
-        // Guitar-specific frequency ranges - focused on standard tuning
-        // Narrower range to focus on core guitar frequencies
+        // Prepare guitar-specific frequency ranges
         const minFreq = 80;   // Just below the lowest E string
-        const maxFreq = 800;  // Above highest common note but catch some harmonics
+        const maxFreq = 1100; // Increased to capture more harmonics for better chord detection
         
-        // Prepare a more detailed acoustic guitar frequency weighting
-        // These are the frequencies of open strings in standard tuning (plus some common notes)
-        // to better catch guitar-specific frequency patterns
-        const guitarWeights = {
-            // Open strings on acoustic guitar - boost these specific frequencies
-            82.41: 2.8,   // E2 (low E)
-            110.0: 2.5,   // A2
-            146.83: 2.2,  // D3
-            196.0: 2.0,   // G3
-            246.94: 1.8,  // B3
-            329.63: 1.6,  // E4 (high E)
-            
-            // Common fretted notes - moderate boost
-            98.0: 1.6,    // G2 (3rd fret low E)
-            123.47: 1.6,  // B2 (2nd fret A)
-            164.81: 1.5,  // E3 (2nd fret D)
-            220.0: 1.4,   // A3 (2nd fret G)
-            293.66: 1.3,  // D4 (3rd fret B)
-            349.23: 1.2,  // F4 (1st fret high E)
-        };
+        // Run onset detection first to identify possible chord changes
+        const onsetDetected = this._detectOnset();
+        
+        // Set isNewChordPossible based on onset detection
+        if (onsetDetected) {
+            this.isNewChordPossible = true;
+        }
         
         // Higher energy threshold when volume is low to reduce false positives
-        const dynamicEnergyThreshold = this.attackState ? 
-            this.energyThreshold * 0.7 : this.energyThreshold * 1.3;
+        const dynamicEnergyThreshold = this.isNewChordPossible ? 
+            this.energyThreshold * 0.65 : this.energyThreshold * 1.3;
+        
+        // Store spectral data for harmonic product spectrum calculation
+        let spectralData = [];
         
         // Loop through the frequency data
         for (let i = 0; i < this.bufferLength; i++) {
@@ -383,7 +418,10 @@ class AudioProcessor {
             // Get energy at this frequency bin (0-1)
             const energy = this.frequencyData[i] / 255;
             
-            // Apply dynamic threshold based on attack state
+            // Store for HPS calculation
+            spectralData.push({ frequency, energy });
+            
+            // Apply dynamic threshold based on onset state
             if (energy < dynamicEnergyThreshold) continue;
             
             // Convert frequency to MIDI note number
@@ -393,32 +431,16 @@ class AudioProcessor {
             // Get the pitch class (0-11) where 0=C, 1=C#, etc.
             const pitchClass = Math.round(noteNumber) % 12;
             
-            // Apply sophisticated weighting
-            let weight = 1.0;
-            
-            // Check if this frequency is close to a guitar-specific frequency
-            for (const [guitarFreq, guitarWeight] of Object.entries(guitarWeights)) {
-                // If within 3% of a target frequency, apply specific boost
-                if (Math.abs(frequency - guitarFreq) / guitarFreq < 0.03) {
-                    weight = guitarWeight;
-                    break;
-                }
-            }
-            
-            // General frequency-range weighting
-            if (frequency < 200) {
-                // Bass notes are very important for chord detection
-                weight *= 1.8;
-            } else if (frequency < 350) {
-                // Mid-range is important but less so
-                weight *= 1.4;
-            } else if (frequency > 600) {
-                // Higher frequencies less important (often overtones)
-                weight *= 0.6;
-            }
+            // Apply sophisticated weighting from guitar model
+            let weight = this._getFrequencyWeight(frequency);
             
             // Add the weighted energy to the corresponding pitch class
             chromagram[pitchClass] += energy * weight;
+        }
+        
+        // Apply Harmonic Product Spectrum if enabled
+        if (this.harmonicProductSpectrum.enabled && spectralData.length > 0) {
+            this._applyHarmonicProductSpectrum(chromagram, spectralData);
         }
         
         // Apply note-specific energy floor (zero out very low values)
@@ -439,34 +461,37 @@ class AudioProcessor {
             this.chromagramHistory.shift();
         }
         
-        // Apply different smoothing strategies based on attack state
+        // Apply different smoothing strategies based on onset detection
         let smoothedChroma;
         
         if (this.chromagramHistory.length < 2) {
             // Not enough history yet
             smoothedChroma = normalizedChroma;
         } else if (this.isNewChordPossible) {
-            // If a new attack was detected, use current reading with less smoothing
+            // If onset was detected, use current reading with minimal smoothing
             // This makes chord transitions more responsive
             smoothedChroma = normalizedChroma.map((val, i) => {
                 const prevVal = this.chromagramHistory[this.chromagramHistory.length - 2][i];
-                return val * 0.8 + prevVal * 0.2; // Weighted toward current frame
+                return val * 0.85 + prevVal * 0.15; // Heavily weighted toward current frame
             });
-            
-            // Reset new chord flag
-            this.isNewChordPossible = false;
         } else {
-            // Otherwise apply stronger smoothing for stability
+            // Otherwise apply adaptive smoothing for stability
             // Calculate exponentially weighted average with more weight on recent frames
             smoothedChroma = Array(12).fill(0);
             let totalWeight = 0;
             
-            for (let i = 0; i < this.chromagramHistory.length; i++) {
-                const frameWeight = Math.pow(1.5, i); // Exponential weighting
+            // Only use a small window of frames if we have just come out of an onset
+            const framesUsed = (Date.now() - this.onsetDetection.lastOnsetTime < 500) ? 
+                Math.min(3, this.chromagramHistory.length) : this.chromagramHistory.length;
+            
+            for (let i = 0; i < framesUsed; i++) {
+                // Use reversed index to weight recent frames more highly
+                const idx = this.chromagramHistory.length - 1 - i;
+                const frameWeight = Math.pow(1.8, framesUsed - i - 1); // Exponential weighting
                 totalWeight += frameWeight;
                 
                 for (let j = 0; j < 12; j++) {
-                    smoothedChroma[j] += this.chromagramHistory[i][j] * frameWeight;
+                    smoothedChroma[j] += this.chromagramHistory[idx][j] * frameWeight;
                 }
             }
             
@@ -474,7 +499,298 @@ class AudioProcessor {
             smoothedChroma = smoothedChroma.map(val => val / totalWeight);
         }
         
+        // Reset new chord flag after processing
+        if (!onsetDetected) {
+            this.isNewChordPossible = false;
+        }
+        
         return smoothedChroma;
+    }
+    
+    /**
+     * Initialize the detailed frequency weighting model for guitar-specific detection
+     * @private
+     */
+    _initializeGuitarFrequencyWeights() {
+        // Initialize with the open string frequencies
+        for (const string of this.guitarModel.openStrings) {
+            // Add the fundamental frequency with full weight
+            this.guitarModel.frequencyWeights[string.freq.toFixed(2)] = 3.0;
+            
+            // Add harmonics with decreasing weights
+            for (let i = 1; i < string.harmonics.length; i++) {
+                const harmonic = string.harmonics[i];
+                this.guitarModel.frequencyWeights[harmonic.toFixed(2)] = 3.0 / (i + 1);
+            }
+        }
+        
+        // Add common fretted notes on each string (up to 12th fret)
+        for (const string of this.guitarModel.openStrings) {
+            const baseFreq = string.freq;
+            
+            for (let fret = 1; fret <= 12; fret++) {
+                // Calculate fretted note frequency: base * 2^(fret/12)
+                const fretFreq = baseFreq * Math.pow(2, fret/12);
+                // Higher weight for common chord positions (1, 2, 3, 5, 7, 8, 10, 12)
+                const isCommonFret = [1, 2, 3, 5, 7, 8, 10, 12].includes(fret);
+                
+                this.guitarModel.frequencyWeights[fretFreq.toFixed(2)] = isCommonFret ? 2.0 : 1.5;
+            }
+        }
+        
+        // Add special boosts for frequencies that are important in common chord shapes
+        const specialBoosts = {
+            // Low E shape (E, Em)
+            82.41: 3.0,   // E2 (Low E string)
+            146.83: 2.2,  // D3 (D string)
+            246.94: 2.0,  // B3 (B string)
+            
+            // A shape (A, Am)
+            110.0: 3.0,   // A2 (A string)
+            164.81: 2.5,  // E3 (2nd fret D string)
+            196.0: 2.2,   // G3 (G string)
+            
+            // C shape
+            131.87: 2.8,  // C3 (3rd fret A string)
+            164.81: 2.5,  // E3 (2nd fret D string)
+            261.63: 2.3,  // C4 (1st fret B string)
+            
+            // D shape
+            146.83: 2.8,  // D3 (D string)
+            220.0: 2.5,   // A3 (A string - 2nd fret G string)
+            293.66: 2.3,  // D4 (3rd fret B string)
+            
+            // G shape
+            98.0: 2.8,    // G2 (3rd fret E string)
+            196.0: 2.5,   // G3 (G string)
+            246.94: 2.3,  // B3 (B string)
+            
+            // F shape (barre chord)
+            87.31: 2.8,   // F2 (1st fret low E)
+            174.61: 2.5,  // F3 (3rd fret D string)
+            349.23: 2.3,  // F4 (1st fret high E)
+        };
+        
+        // Apply the special boosts
+        for (const [freq, boost] of Object.entries(specialBoosts)) {
+            this.guitarModel.frequencyWeights[freq] = boost;
+        }
+    }
+    
+    /**
+     * Get the weight for a specific frequency based on the guitar model
+     * @param {number} frequency The frequency to get weight for
+     * @returns {number} The weight for this frequency
+     * @private
+     */
+    _getFrequencyWeight(frequency) {
+        let weight = 1.0;
+        
+        // Check all weights with a tolerance of 1.5%
+        for (const [guitarFreq, guitarWeight] of Object.entries(this.guitarModel.frequencyWeights)) {
+            const targetFreq = parseFloat(guitarFreq);
+            // If within tolerance of a target frequency, apply specific boost
+            if (Math.abs(frequency - targetFreq) / targetFreq < 0.015) {
+                weight = guitarWeight;
+                break;
+            }
+        }
+        
+        // General frequency-range weighting based on guitar acoustics
+        if (frequency < 150) {
+            // Bass notes are very important for chord detection
+            weight *= 2.2;
+        } else if (frequency < 350) {
+            // Mid-range is important but less so
+            weight *= 1.8;
+        } else if (frequency < 600) {
+            // Upper midrange
+            weight *= 1.4;
+        } else if (frequency < 800) {
+            // Typical highest notes on guitar
+            weight *= 1.0;
+        } else {
+            // Higher frequencies less important (often overtones)
+            weight *= 0.6;
+        }
+        
+        return weight;
+    }
+    
+    /**
+     * Detect onset (sudden changes in audio signal) using spectral flux and energy analysis
+     * @returns {boolean} Whether an onset was detected
+     * @private
+     */
+    _detectOnset() {
+        if (!this.onsetDetection.enabled) return false;
+        
+        const now = Date.now();
+        
+        // Don't check for onsets too frequently
+        if (now - this.onsetDetection.lastOnsetTime < this.onsetDetection.minTimeBetweenOnsets) {
+            return false;
+        }
+        
+        // Calculate current frame energy
+        let currentEnergy = 0;
+        for (let i = 0; i < this.timeData.length; i++) {
+            currentEnergy += this.timeData[i] * this.timeData[i];
+        }
+        currentEnergy = Math.sqrt(currentEnergy / this.timeData.length);
+        
+        // Add to history
+        this.onsetDetection.energyHistory.push(currentEnergy);
+        if (this.onsetDetection.energyHistory.length > this.onsetDetection.bufferSize) {
+            this.onsetDetection.energyHistory.shift();
+        }
+        
+        // Calculate spectral flux (difference in spectrum between consecutive frames)
+        // Only possible if we have at least 2 frames
+        let spectralFlux = 0;
+        if (this.onsetDetection.spectralHistory.length > 0) {
+            const previousSpectrum = this.onsetDetection.spectralHistory[this.onsetDetection.spectralHistory.length - 1];
+            
+            // Calculate flux as sum of squared differences
+            for (let i = 0; i < this.frequencyData.length; i++) {
+                const diff = (this.frequencyData[i] / 255) - previousSpectrum[i];
+                // Only count positive differences (increases in energy)
+                if (diff > 0) {
+                    spectralFlux += diff * diff;
+                }
+            }
+        }
+        
+        // Store current spectrum
+        const currentSpectrum = Array.from(this.frequencyData).map(v => v / 255);
+        this.onsetDetection.spectralHistory.push(currentSpectrum);
+        if (this.onsetDetection.spectralHistory.length > this.onsetDetection.bufferSize) {
+            this.onsetDetection.spectralHistory.shift();
+        }
+        
+        // If we don't have enough history yet, we can't detect onsets
+        if (this.onsetDetection.energyHistory.length < 3) {
+            return false;
+        }
+        
+        // Calculate average of previous energy values (excluding current)
+        const prevEnergies = this.onsetDetection.energyHistory.slice(0, -1);
+        const avgEnergy = prevEnergies.reduce((sum, val) => sum + val, 0) / prevEnergies.length;
+        
+        // Get the previous spectral flux values if available
+        let avgSpectralFlux = 0;
+        if (this.onsetDetection.spectralHistory.length > 3) {
+            // Calculate average of previous spectral flux values
+            let fluxSum = 0;
+            let fluxCount = 0;
+            
+            for (let i = 0; i < this.onsetDetection.spectralHistory.length - 2; i++) {
+                const prev = this.onsetDetection.spectralHistory[i];
+                const next = this.onsetDetection.spectralHistory[i + 1];
+                
+                let frameFlux = 0;
+                for (let j = 0; j < prev.length; j++) {
+                    const diff = next[j] - prev[j];
+                    if (diff > 0) {
+                        frameFlux += diff * diff;
+                    }
+                }
+                
+                fluxSum += frameFlux;
+                fluxCount++;
+            }
+            
+            if (fluxCount > 0) {
+                avgSpectralFlux = fluxSum / fluxCount;
+            }
+        }
+        
+        // Check if current energy is significantly higher than average (potential onset)
+        const energyRatio = currentEnergy / (avgEnergy + 0.00001); // Avoid division by zero
+        const fluxRatio = spectralFlux / (avgSpectralFlux + 0.00001);
+        
+        // Onset detected if either energy or spectral flux shows significant change
+        const isEnergyOnset = energyRatio > this.onsetDetection.energyThreshold && currentEnergy > 0.02;
+        const isSpectralOnset = fluxRatio > this.onsetDetection.spectralFluxThreshold && spectralFlux > 0.01;
+        
+        if (isEnergyOnset || isSpectralOnset) {
+            // Record the onset time for debouncing
+            this.onsetDetection.lastOnsetTime = now;
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Apply Harmonic Product Spectrum algorithm to enhance fundamental frequency detection
+     * @param {Array} chromagram The chromagram to enhance
+     * @param {Array} spectralData The spectral data to analyze
+     * @private
+     */
+    _applyHarmonicProductSpectrum(chromagram, spectralData) {
+        const { harmonics, weights } = this.harmonicProductSpectrum;
+        
+        // Group spectral data by pitch class
+        const pitchClassData = Array(12).fill().map(() => []);
+        
+        // Assign each frequency to its pitch class
+        for (const { frequency, energy } of spectralData) {
+            const noteNumber = 12 * Math.log2(frequency / 440) + 69;
+            const pitchClass = Math.round(noteNumber) % 12;
+            pitchClassData[pitchClass].push({ frequency, energy });
+        }
+        
+        // Apply HPS to each pitch class separately
+        for (let pitchClass = 0; pitchClass < 12; pitchClass++) {
+            const entries = pitchClassData[pitchClass];
+            if (entries.length === 0) continue;
+            
+            // Sort by frequency
+            entries.sort((a, b) => a.frequency - b.frequency);
+            
+            // Apply HPS processing
+            let hpsValue = 0;
+            
+            for (const { frequency, energy } of entries) {
+                // Skip if too low energy
+                if (energy < 0.05) continue;
+                
+                // Find harmonics for this frequency
+                let harmonicProduct = energy * weights[0]; // Start with fundamental
+                
+                for (let h = 1; h < harmonics; h++) {
+                    if (h >= weights.length) break;
+                    
+                    // Calculate expected frequency of harmonic
+                    const harmonicFreq = frequency * (h + 1);
+                    
+                    // Find closest actual frequency and get its energy
+                    let bestDistance = Infinity;
+                    let harmonicEnergy = 0;
+                    
+                    for (const entry of spectralData) {
+                        const distance = Math.abs(entry.frequency - harmonicFreq);
+                        const relativeDist = distance / harmonicFreq;
+                        
+                        // If within 3% of expected harmonic, consider it
+                        if (relativeDist < 0.03 && relativeDist < bestDistance) {
+                            bestDistance = relativeDist;
+                            harmonicEnergy = entry.energy;
+                        }
+                    }
+                    
+                    // Multiply by harmonic energy (with appropriate weight)
+                    harmonicProduct *= Math.pow(harmonicEnergy, weights[h]);
+                }
+                
+                // Add to total HPS value for this pitch class
+                hpsValue += harmonicProduct;
+            }
+            
+            // Add HPS result to chromagram
+            chromagram[pitchClass] += hpsValue;
+        }
     }
     
     /**

@@ -45,47 +45,47 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
     
-    // Handle audio processing results with attack detection
+    // Handle audio processing results with advanced detection
     function handleAudioProcessed(results) {
         // Debug logging to see what data we're getting
-        console.log(`Volume: ${results.volume.toFixed(2)}, Chord: ${results.chord ? results.chord.name : 'none'}, Confidence: ${results.chord ? results.chord.confidence.toFixed(2) : 0}`);
+        console.log(`Volume: ${results.volume.toFixed(2)}, Chord: ${results.chord ? results.chord.name : 'none'}, Confidence: ${results.chord ? results.chord.confidence.toFixed(2) : 0}, NewStrum: ${results.isNewStrum ? 'yes' : 'no'}`);
         
         // Update volume meter
         updateVolumeMeter(results.volume);
         
-        // Initialize attack detection state if not already
+        // Initialize detection state if not already
         if (typeof lastAttackTime === 'undefined') {
             lastAttackTime = 0;
             strumInProgress = false;
-            requiredStableFrames = 6; // Reduced from 10
-            stableFrameThreshold = { // By chord name - all reduced
-                'E': 5,    // Easier to detect (reduced from 7)
-                'Em': 4,   // Even easier (reduced from 6)
-                'G': 5,    // Easier (reduced from 7)
-                'F': 8,    // Still harder but reduced from 14
-                'default': 6  // Reduced from 10
+            requiredStableFrames = 5; // Further reduced with better detection
+            stableFrameThreshold = { // By chord name - optimized with the new detection
+                'E': 4,    // Easier with improved detection
+                'Em': 3,   // Even easier with improved detection
+                'G': 4,    // Easier with improved detection
+                'F': 6,    // More reasonable with improved detection
+                'default': 5  // Reduced with improved detection
             };
             
             // Keep track of last few chords detected (raw, not in history)
             // This helps detect stable patterns vs. noise
             lastChordBuffer = [];
-            lastChordBufferSize = 8;
+            lastChordBufferSize = 7; // Reduced buffer size for faster response
             
             // Track activity/decay state
             lastActiveTime = 0;
-            activityTimeout = 1500; // Reduced from 2000ms - shorter time before decay 
+            activityTimeout = 1200; // Further reduced - shorter decay with improved detection
             lastVolumeActivity = 0;
-            volumeActivityThreshold = 0.15; // Reduced from 0.2 - lower threshold for "activity"
+            volumeActivityThreshold = 0.12; // Lower threshold with better noise handling
             
             // Noise control
-            minVolumeForChord = 0.08; // Reduced from 0.12 - less strict minimum volume
+            minVolumeForChord = 0.06; // Lower threshold with better noise filtering
             inNoiseHandlingMode = false; // Special noise handling active
 
             // Create a map to track rejected chords
             chordRejections = {};            
         }
         
-        // SECTION 1: VOLUME ACTIVITY DETECTION
+        // SECTION 1: VOLUME & ONSET DETECTION
         const now = Date.now();
         
         // Check for significant volume activity
@@ -93,21 +93,29 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update activity time
             lastActiveTime = now;
             lastVolumeActivity = results.volume;
-            
-            // When we have new activity after inactivity, reset stability
-            if (now - lastAttackTime > 500) {
-                // Possible new strum if we've been quiet
-                strumInProgress = true;
-                lastAttackTime = now;
-                chordHistoryStability = 0;
-                
-                // Clear the recent chord buffer on new strums
-                lastChordBuffer = [];
-            }
         }
         
-        // SECTION 2: CHORD DETECTION
-        if (results.chord && results.chord.name) {
+        // Use the superior onset detection from our enhanced audio processor
+        // which combines spectral flux and energy analysis
+        const isNewStrum = results.isNewStrum || false;
+        
+        // When the audio processor detects a new strum/attack, reset stability
+        if (isNewStrum) {
+            strumInProgress = true;
+            lastAttackTime = now;
+            chordHistoryStability = 0;
+            
+            // Clear the recent chord buffer on new strums for fresh detection
+            lastChordBuffer = [];
+        }
+        
+        // SECTION 2: ADVANCED CHORD DETECTION
+        if (results.chromagram && results.volume >= minVolumeForChord) {
+            // We have a chromagram but no chord - use our detector with the latest advanced logic
+            // This path is not used currently but allows for future separation of chromagram extraction
+            // from chord detection if needed
+        }
+        else if (results.chord && results.chord.name) {
             // Only process when there's reasonable volume
             // This is our first major noise gate
             if (results.volume < minVolumeForChord) {
@@ -115,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Add detected chord to our buffer
+            // Add detected chord to our buffer with additional metadata
             if (lastChordBuffer.length >= lastChordBufferSize) {
                 lastChordBuffer.shift();
             }
@@ -123,15 +131,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: results.chord.name,
                 type: results.chord.type,
                 confidence: results.chord.confidence,
+                isStable: results.chord.isStable || false,
+                isNewStrum: isNewStrum,
                 timestamp: now
             });
             
-            // Update the display immediately
+            // Update the display immediately for responsive UI
             updateChordDisplay(results.chord);
             
-            // SECTION 3: CHORD STABILITY ANALYSIS
-            // Only consider adding to history if we have enough data
-            if (lastChordBuffer.length >= 4) {
+            // SECTION 3: CHORD STABILITY ANALYSIS WITH IMPROVED LOGIC
+            // Only consider adding to history if we have enough data or if we have a highly confident detection
+            // with a new strum detected
+            if (lastChordBuffer.length >= 3 || (isNewStrum && results.chord.confidence > 0.6)) {
                 // Get most recent chord
                 const recentChord = results.chord.name;
                 
@@ -139,48 +150,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 const countSameChord = lastChordBuffer.filter(c => c.name === recentChord).length;
                 
                 // Calculate what percentage of recent detections are this chord
-                const percentSameChord = countSameChord / lastChordBuffer.length;
+                const percentSameChord = countSameChord / Math.max(1, lastChordBuffer.length);
                 
-                // Check if we're seeing a relatively stable chord pattern (>60% same chord - reduced from 70%)
-                if (percentSameChord > 0.6) {
-                    // We have a relatively stable chord, but we need additional checks
+                // Check if we're seeing a stable chord pattern (adaptive threshold)
+                // Lower threshold when a new strum is detected (faster response)
+                const stabilityThreshold = isNewStrum ? 0.5 : 0.6;
+                
+                if (percentSameChord > stabilityThreshold || results.chord.isStable) {
+                    // We have a relatively stable chord, but we need additional validation
                     
                     // Check if this chord has been rejected too many times recently
                     const rejectionCount = chordRejections[recentChord] || 0;
                     if (rejectionCount > 3) {
-                        // This chord is being rejected repeatedly
-                        // It might be persistent noise - increase threshold
-                        minVolumeForChord = Math.min(0.25, minVolumeForChord * 1.05);
-                        
-                        // Skip further processing
+                        // This chord has been rejected multiple times - skip it
                         return;
                     }
                     
-                    // Get specific stable frame requirement for this chord
-                    const framesRequired = stableFrameThreshold[recentChord] || 
-                                         stableFrameThreshold.default;
+                    // Get specific stable frame requirement, reduced when we detect a new strum
+                    let framesRequired = stableFrameThreshold[recentChord] || 
+                                      stableFrameThreshold.default;
+                    
+                    // If we have a new strum, lower the required frames for faster response
+                    if (isNewStrum) {
+                        framesRequired = Math.max(2, Math.floor(framesRequired * 0.6));
+                    }
                     
                     // If same as pending chord, increment stability
                     if (recentChord === pendingHistoryChord) {
                         chordHistoryStability++;
                         
-                        // If we've been stable long enough, add to history
-                        if (chordHistoryStability >= framesRequired && 
-                            results.chord.confidence > 0.2) { // Reduced confidence requirement from 0.3 to 0.2
+                        // If we've been stable long enough or have a very confident detection with new strum, add to history
+                        const confidentNewStrumDetection = isNewStrum && 
+                                                        results.chord.confidence > 0.55 && 
+                                                        chordHistoryStability >= 1;
+                        
+                        const stableDetection = chordHistoryStability >= framesRequired && 
+                                             results.chord.confidence > 0.2;
                             
-                            // Special handler for F chord - check if we're seeing
-                            // too many Fs - if yes, reject this detection
-                            if (recentChord === 'F' && 
-                                recentChords.filter(c => c.name === 'F').length > 1) {
+                        if (stableDetection || confidentNewStrumDetection) {
+                            // Special handler for problematic chords
+                            if ((recentChord === 'F' || recentChord === 'Fmaj7') && 
+                                recentChords.filter(c => c.name === recentChord).length > 1) {
                                 
-                                // Too many F chords already - likely false detection
-                                chordRejections['F'] = (chordRejections['F'] || 0) + 1;
+                                // Too many already in history - likely false detection
+                                chordRejections[recentChord] = (chordRejections[recentChord] || 0) + 1;
                                 pendingHistoryChord = null;
                                 return;
                             }
                             
-                            // Add chord to history
-                            addChordToHistory(results.chord);
+                            // Add chord to history with enhanced metadata
+                            addChordToHistory({
+                                name: results.chord.name,
+                                type: results.chord.type,
+                                confidence: results.chord.confidence,
+                                isStable: results.chord.isStable || false,
+                                timestamp: now,
+                                fromNewStrum: isNewStrum
+                            });
                             
                             // Reset tracking
                             chordHistoryStability = 0;
@@ -190,9 +216,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             chordRejections[recentChord] = 0;
                         }
                     } else {
-                        // New chord detected, reset stability
+                        // New chord detected, reset stability with bonus for new strums
                         pendingHistoryChord = recentChord;
-                        chordHistoryStability = 1;
+                        chordHistoryStability = isNewStrum ? 1 : 0;
                     }
                 }
             }
@@ -204,6 +230,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 confidenceIndicator.className = 'confidence-indicator';
                 lastDetectedChord = '';
                 pendingHistoryChord = null;
+                chordHistoryStability = 0;
+            }
+            
+            // Decay our chord display after period of inactivity
+            const inactiveTime = now - lastActiveTime;
+            if (inactiveTime > activityTimeout) {
+                // We've been inactive for a while - reset everything
+                strumInProgress = false;
+                lastChordBuffer = [];
                 chordHistoryStability = 0;
             }
         }
