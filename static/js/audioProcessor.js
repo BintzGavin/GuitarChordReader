@@ -34,6 +34,34 @@ class AudioProcessor {
             // Create the chord detector
             this.chordDetector = new ChordDetector();
             
+            // Initialize our advanced audio processing components
+            this._initializeGuitarFrequencyWeights();
+            
+            // Initialize internal state for tracking
+            this.chromagramHistory = [];
+            this.chromagramHistorySize = 5;
+            this.energyThreshold = 0.05;
+            this.noteEnergyFloor = 0.015;
+            
+            // Initialize Harmonic Product Spectrum
+            this.harmonicProductSpectrum = {
+                enabled: true,
+                harmonics: 3,
+                weights: [1.0, 0.85, 0.55]
+            };
+            
+            // Initialize onset detection
+            this.onsetDetection = {
+                enabled: true,
+                bufferSize: 8,
+                energyThreshold: 1.4,
+                spectralFluxThreshold: 2.0,
+                lastOnsetTime: 0,
+                minTimeBetweenOnsets: 150,
+                energyHistory: [],
+                spectralHistory: []
+            };
+            
             // Setup basic components - we'll connect them when user clicks start
             this.isInitialized = true;
             return true;
@@ -333,58 +361,18 @@ class AudioProcessor {
         // Init chromagram array
         const chromagram = Array(12).fill(0);
         
-        // Initialize chromagram history and advanced processing settings if not set
-        if (!this.chromagramHistory) {
-            this.chromagramHistory = [];
-            this.chromagramHistorySize = 5; // Number of frames to keep
-            this.energyThreshold = 0.05; // Higher energy threshold to reduce false activations
-            this.noteEnergyFloor = 0.015; // Note-specific energy floor to filter out noise
-            
-            // Advanced feature extraction settings
-            this.harmonicProductSpectrum = {
-                enabled: true,   // Enable Harmonic Product Spectrum for better fundamental detection
-                harmonics: 3,    // Number of harmonics to consider
-                weights: [1.0, 0.85, 0.55] // Weights for each harmonic (fundamental has highest weight)
-            };
-            
-            // Constant-Q Transform approximation settings (12 bins per octave, matching notes)
-            this.constantQ = {
-                enabled: true,
-                binsPerOctave: 12,
-                minFreq: 65.4064, // C2
-                maxFreq: 1046.5, // C6 - covers standard guitar range plus harmonics
-                q: 1/(2**(1/12) - 1) // Q factor for CQT
-            };
-            
-            // Onset detection settings
-            this.onsetDetection = {
-                enabled: true,
-                bufferSize: 8,              // Number of frames to analyze
-                energyThreshold: 1.4,       // Energy increase required for onset
-                spectralFluxThreshold: 2.0, // Spectral change required for onset
-                lastOnsetTime: 0,           // Last detected onset time
-                minTimeBetweenOnsets: 150,  // Minimum time between onsets (ms)
-                energyHistory: [],          // History of energy values
-                spectralHistory: []         // History of spectral data
-            };
-            
-            // Advanced acoustic guitar modeling
-            this.guitarModel = {
-                // Frequency bins centered around guitar string fundamentals and their first few harmonics
-                openStrings: [
-                    { note: 'E2', freq: 82.41, harmonics: [82.41, 164.82, 247.23, 329.64] },
-                    { note: 'A2', freq: 110.0, harmonics: [110.0, 220.0, 330.0, 440.0] },
-                    { note: 'D3', freq: 146.83, harmonics: [146.83, 293.66, 440.49, 587.32] },
-                    { note: 'G3', freq: 196.0, harmonics: [196.0, 392.0, 588.0, 784.0] },
-                    { note: 'B3', freq: 246.94, harmonics: [246.94, 493.88, 740.82, 987.76] },
-                    { note: 'E4', freq: 329.63, harmonics: [329.63, 659.26, 988.89, 1318.52] }
-                ],
-                // Elaborate weighting scheme for guitar-specific frequencies
-                frequencyWeights: {}
-            };
-            
-            // Initialize the guitar frequency weights with a more detailed model
+        // The advanced settings should already be initialized in the initialize() method
+        // This is just a safety check in case something went wrong
+        if (!this.guitarModel || !this.guitarModel.frequencyWeights || 
+            Object.keys(this.guitarModel.frequencyWeights).length === 0) {
+            console.log("Initializing guitar frequency weights that weren't properly set up");
             this._initializeGuitarFrequencyWeights();
+        }
+        
+        // Check if onset detection history is initialized
+        if (!this.onsetDetection.energyHistory.length) {
+            this.onsetDetection.energyHistory = Array(this.onsetDetection.bufferSize).fill(0);
+            this.onsetDetection.spectralHistory = Array(this.onsetDetection.bufferSize).fill(null);
         }
         
         // Prepare guitar-specific frequency ranges
@@ -512,6 +500,30 @@ class AudioProcessor {
      * @private
      */
     _initializeGuitarFrequencyWeights() {
+        // Make sure guitarModel is initialized
+        if (!this.guitarModel) {
+            this.guitarModel = {
+                frequencyWeights: {}
+            };
+        }
+        
+        // Make sure frequencyWeights is initialized
+        if (!this.guitarModel.frequencyWeights) {
+            this.guitarModel.frequencyWeights = {};
+        }
+        
+        // Make sure we have the open strings data
+        if (!this.guitarModel.openStrings) {
+            this.guitarModel.openStrings = [
+                { note: 'E2', freq: 82.41, harmonics: [82.41, 164.82, 247.23, 329.64] },
+                { note: 'A2', freq: 110.0, harmonics: [110.0, 220.0, 330.0, 440.0] },
+                { note: 'D3', freq: 146.83, harmonics: [146.83, 293.66, 440.49, 587.32] },
+                { note: 'G3', freq: 196.0, harmonics: [196.0, 392.0, 588.0, 784.0] },
+                { note: 'B3', freq: 246.94, harmonics: [246.94, 493.88, 740.82, 987.76] },
+                { note: 'E4', freq: 329.63, harmonics: [329.63, 659.26, 988.89, 1318.52] }
+            ];
+        }
+        
         // Initialize with the open string frequencies
         for (const string of this.guitarModel.openStrings) {
             // Add the fundamental frequency with full weight
@@ -623,6 +635,20 @@ class AudioProcessor {
      * @private
      */
     _detectOnset() {
+        // Make sure onsetDetection is properly initialized
+        if (!this.onsetDetection) {
+            this.onsetDetection = {
+                enabled: true,
+                bufferSize: 8,
+                energyThreshold: 1.4,
+                spectralFluxThreshold: 2.0,
+                lastOnsetTime: 0,
+                minTimeBetweenOnsets: 150,
+                energyHistory: [],
+                spectralHistory: []
+            };
+        }
+        
         if (!this.onsetDetection.enabled) return false;
         
         const now = Date.now();
@@ -729,6 +755,15 @@ class AudioProcessor {
      * @private
      */
     _applyHarmonicProductSpectrum(chromagram, spectralData) {
+        // Make sure harmonicProductSpectrum is properly initialized
+        if (!this.harmonicProductSpectrum) {
+            this.harmonicProductSpectrum = {
+                enabled: true,
+                harmonics: 3,
+                weights: [1.0, 0.85, 0.55]
+            };
+        }
+        
         const { harmonics, weights } = this.harmonicProductSpectrum;
         
         // Group spectral data by pitch class
