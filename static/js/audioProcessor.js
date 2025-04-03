@@ -303,6 +303,9 @@ class AudioProcessor {
             return;
         }
 
+        // Default volume
+        let volume = 0;
+        
         try {
             // Get time domain data
             this.analyser.getFloatTimeDomainData(this.timeData);
@@ -311,7 +314,7 @@ class AudioProcessor {
             this.analyser.getByteFrequencyData(this.frequencyData);
             
             // Calculate volume level with noise gating
-            const volume = this.calculateVolume();
+            volume = this.calculateVolume();
         } catch (error) {
             console.error("Error during audio processing:", error);
             requestAnimationFrame(() => this.processAudio());
