@@ -30,19 +30,43 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the application
     async function initialize() {
         updateStatus('Initializing audio system...');
+        console.log("Starting application initialization...");
         
-        const success = await audioProcessor.initialize();
-        
-        if (!success) {
-            updateStatus('Failed to initialize audio. Please check microphone permissions.');
+        try {
+            // Initialize the audio processor with better error handling
+            console.log("Initializing AudioProcessor...");
+            const success = await audioProcessor.initialize().catch(error => {
+                console.error("Error during AudioProcessor initialization:", error);
+                return false;
+            });
+            
+            if (!success) {
+                console.error("AudioProcessor initialization failed");
+                updateStatus('Failed to initialize audio. Please check microphone permissions or try refreshing the page.');
+                return false;
+            }
+            
+            console.log("AudioProcessor initialized successfully");
+            
+            // Set up callback for audio processing results
+            console.log("Setting up audio processing callback...");
+            try {
+                audioProcessor.setAudioProcessedCallback(handleAudioProcessed);
+                console.log("Audio processing callback set up successfully");
+            } catch (callbackError) {
+                console.error("Error setting up audio processing callback:", callbackError);
+                updateStatus('Error setting up audio processor. Please refresh and try again.');
+                return false;
+            }
+            
+            console.log("Application initialization complete!");
+            updateStatus('Ready! Click "Start Listening" to begin chord detection.');
+            return true;
+        } catch (error) {
+            console.error('Unexpected error during initialization:', error);
+            updateStatus('Error initializing audio system. Please try using a different browser.');
             return false;
         }
-        
-        // Set up callback for audio processing results
-        audioProcessor.setAudioProcessedCallback(handleAudioProcessed);
-        
-        updateStatus('Ready! Click "Start Listening" to begin chord detection.');
-        return true;
     }
     
     // Handle audio processing results with advanced detection

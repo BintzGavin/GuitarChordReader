@@ -24,20 +24,61 @@ class AudioProcessor {
      * Initialize the audio context and request microphone access
      */
     async initialize() {
+        console.log("Starting AudioProcessor initialization...");
+        
+        if (this.isInitialized) {
+            console.log("AudioProcessor already initialized");
+            return true;
+        }
+        
         try {
             // Create audio context but don't start it yet - it will start on user gesture
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                latencyHint: 'interactive',
-                sampleRate: 44100
-            });
+            console.log("Creating AudioContext...");
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                    latencyHint: 'interactive',
+                    sampleRate: 44100
+                });
+                console.log("AudioContext created successfully, state:", this.audioContext.state);
+            } catch (audioContextError) {
+                console.error("Failed to create AudioContext:", audioContextError);
+                alert("Your browser doesn't support audio processing. Please try a different browser.");
+                return false;
+            }
             
             // Create the chord detector
-            this.chordDetector = new ChordDetector();
+            console.log("Creating ChordDetector...");
+            try {
+                this.chordDetector = new ChordDetector();
+                console.log("ChordDetector created successfully");
+            } catch (chordDetectorError) {
+                console.error("Failed to create ChordDetector:", chordDetectorError);
+                
+                // Create a simple emergency fallback for ChordDetector
+                console.warn("Creating emergency fallback ChordDetector");
+                this.chordDetector = {
+                    detectChord: function(chromagram, volume) {
+                        return { name: 'Unknown', type: '', confidence: 0 };
+                    }
+                };
+            }
             
             // Initialize our advanced audio processing components
-            this._initializeGuitarFrequencyWeights();
+            console.log("Initializing guitar frequency weights...");
+            try {
+                this._initializeGuitarFrequencyWeights();
+                console.log("Guitar frequency weights initialized");
+            } catch (guitarModelError) {
+                console.error("Failed to initialize guitar model:", guitarModelError);
+                
+                // Set up basic guitar model as fallback
+                this.guitarModel = {
+                    frequencyWeights: {}
+                };
+            }
             
             // Initialize internal state for tracking
+            console.log("Setting up audio processing parameters...");
             this.chromagramHistory = [];
             this.chromagramHistorySize = 5;
             this.energyThreshold = 0.05;
@@ -58,15 +99,17 @@ class AudioProcessor {
                 spectralFluxThreshold: 2.0,
                 lastOnsetTime: 0,
                 minTimeBetweenOnsets: 150,
-                energyHistory: [],
-                spectralHistory: []
+                energyHistory: Array(8).fill(0),
+                spectralHistory: Array(8).fill(null)
             };
             
             // Setup basic components - we'll connect them when user clicks start
+            console.log("AudioProcessor initialization complete!");
             this.isInitialized = true;
             return true;
         } catch (error) {
             console.error('Error initializing audio processor:', error);
+            alert("Failed to initialize audio system. Please refresh the page and try again.");
             return false;
         }
     }
@@ -180,12 +223,46 @@ class AudioProcessor {
      * Start audio processing
      */
     start() {
+        console.log("Starting audio processor...");
+        
+        // More detailed checks
         if (!this.isInitialized) {
+            console.error("Audio processor not initialized");
             throw new Error('Audio processor not initialized');
         }
-
+        
+        if (!this.analyser) {
+            console.error("Analyzer not initialized - check setup");
+            throw new Error('Analyzer not initialized');
+        }
+        
+        if (!this.chordDetector) {
+            console.error("Chord detector not initialized");
+            // Try to create it if missing
+            try {
+                console.log("Attempting to create missing chord detector...");
+                this.chordDetector = new ChordDetector();
+            } catch (err) {
+                console.error("Failed to create chord detector:", err);
+                throw new Error('Failed to create chord detector');
+            }
+        }
+        
+        console.log("All checks passed, starting audio processing");
         this.isRunning = true;
+        
+        // Add fallback timer in case processAudio has an issue
+        this.startupTimer = setTimeout(() => {
+            if (!this.hasProcessedFrame) {
+                console.warn("Audio processing didn't produce any frames within 2 seconds");
+                // Try restarting the processing
+                this.processAudio();
+            }
+        }, 2000);
+        
+        this.hasProcessedFrame = false;
         this.processAudio();
+        console.log("Audio processing initiated");
     }
 
     /**
@@ -336,12 +413,25 @@ class AudioProcessor {
             
             // Send the processed results
             if (this.onAudioProcessed) {
-                this.onAudioProcessed({
-                    volume,
-                    chromagram,
-                    chord: chordResult,
-                    isNewStrum: this.isNewChordPossible || false
-                });
+                try {
+                    this.onAudioProcessed({
+                        volume,
+                        chromagram,
+                        chord: chordResult,
+                        isNewStrum: this.isNewChordPossible || false
+                    });
+                    
+                    // Mark that we've processed at least one frame successfully
+                    this.hasProcessedFrame = true;
+                    
+                    // Clear the startup timer once we've processed a frame
+                    if (this.startupTimer) {
+                        clearTimeout(this.startupTimer);
+                        this.startupTimer = null;
+                    }
+                } catch (callbackError) {
+                    console.error("Error in audio processing callback:", callbackError);
+                }
             }
             
             // Reset new chord flag after sending
