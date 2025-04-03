@@ -482,20 +482,48 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Start listening for chords
     async function startListening() {
-        // Setup audio after user gesture (browser requirement)
-        if (!audioProcessor.analyser) {
+        try {
+            // First make sure we disable the button to prevent multiple clicks
+            startButton.disabled = true;
             updateStatus('Setting up audio, please wait...');
-            const setupSuccess = await audioProcessor.setupAudio();
-            if (!setupSuccess) {
-                updateStatus('Failed to access microphone. Please check permissions and try again.');
-                return;
+            
+            // Setup audio after user gesture (browser requirement)
+            if (!audioProcessor.analyser) {
+                console.log("Setting up audio system for the first time...");
+                
+                // This is the key operation that might fail if microphone access is denied
+                const setupSuccess = await audioProcessor.setupAudio().catch(error => {
+                    console.error("Error during setupAudio:", error);
+                    return false;
+                });
+                
+                if (!setupSuccess) {
+                    console.error("Audio setup failed");
+                    updateStatus('Failed to access microphone. Please check permissions and try again.');
+                    startButton.disabled = false; // Re-enable button
+                    return;
+                }
+                console.log("Audio setup completed successfully");
+            } else {
+                console.log("Audio system already set up, resuming");
             }
+            
+            // Start the audio processing
+            try {
+                audioProcessor.start();
+                console.log("Audio processing started");
+                stopButton.disabled = false;
+                updateStatus('Listening for chords...');
+            } catch (startError) {
+                console.error("Error starting audio processor:", startError);
+                updateStatus('Error starting audio system. Please refresh and try again.');
+                startButton.disabled = false; // Re-enable button
+            }
+        } catch (error) {
+            console.error("Unexpected error in startListening:", error);
+            updateStatus('An unexpected error occurred. Please refresh the page and try again.');
+            startButton.disabled = false; // Re-enable button
         }
-        
-        audioProcessor.start();
-        startButton.disabled = true;
-        stopButton.disabled = false;
-        updateStatus('Listening for chords...');
     }
     
     // Stop listening for chords

@@ -76,11 +76,29 @@ class AudioProcessor {
      * This must be called after a user gesture (like button click)
      */
     async setupAudio() {
+        console.log("Setting up audio system...");
+        
+        if (!this.audioContext) {
+            console.error("Audio context not initialized!");
+            alert("Audio system failed to initialize. Please refresh the page and try again.");
+            return false;
+        }
+        
         if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
+            console.log("Resuming suspended audio context...");
+            try {
+                await this.audioContext.resume();
+                console.log("Audio context resumed successfully");
+            } catch (resumeError) {
+                console.error("Failed to resume audio context:", resumeError);
+                alert("Failed to start audio system. Please try again or check browser permissions.");
+                return false;
+            }
         }
         
         try {
+            console.log("Requesting microphone access...");
+            
             // Request microphone access
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { 
@@ -90,28 +108,70 @@ class AudioProcessor {
                 } 
             });
             
+            console.log("Microphone access granted!");
+            
             // Create microphone source
             this.microphone = this.audioContext.createMediaStreamSource(stream);
+            console.log("Microphone source created");
             
             // Create analyzer node
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = this.fftSize;
             this.analyser.smoothingTimeConstant = 0.8;
             this.bufferLength = this.analyser.frequencyBinCount;
+            
+            console.log(`Analyzer created with FFT size: ${this.fftSize}, buffer length: ${this.bufferLength}`);
+            
+            // Create data buffers
             this.frequencyData = new Uint8Array(this.bufferLength);
             this.timeData = new Float32Array(this.fftSize);
             
+            console.log("Data buffers created");
+            
             // Connect microphone to analyzer
             this.microphone.connect(this.analyser);
+            console.log("Microphone connected to analyzer");
             
-            // For simplicity in the initial implementation, we'll use the analyzer directly
-            // The audio worklet can be added later for more advanced processing
+            // Initialize components that depend on audio setup
+            this._initializeGuitarFrequencyWeights();
             
-            // To ensure we have a minimal viable product first, we're skipping the worklet
-            // and using the analyzer node data directly for chord detection
+            // Make sure onset detection is initialized
+            if (!this.onsetDetection) {
+                this.onsetDetection = {
+                    enabled: true,
+                    bufferSize: 8,
+                    energyThreshold: 1.4, 
+                    spectralFluxThreshold: 2.0,
+                    lastOnsetTime: 0,
+                    minTimeBetweenOnsets: 150,
+                    energyHistory: Array(8).fill(0),
+                    spectralHistory: Array(8).fill(null)
+                };
+            }
+            
+            // Check if harmonicProductSpectrum is initialized
+            if (!this.harmonicProductSpectrum) {
+                this.harmonicProductSpectrum = {
+                    enabled: true,
+                    harmonics: 3,
+                    weights: [1.0, 0.85, 0.55]
+                };
+            }
+            
+            console.log("Audio system setup complete!");
             return true;
         } catch (error) {
             console.error('Error setting up audio:', error);
+            
+            // More specific error messaging
+            if (error.name === 'NotAllowedError') {
+                alert('Microphone access denied. Please allow microphone access in your browser settings.');
+            } else if (error.name === 'NotFoundError') {
+                alert('No microphone found. Please connect a microphone and try again.');
+            } else {
+                alert(`Failed to access microphone: ${error.message}`);
+            }
+            
             return false;
         }
     }
