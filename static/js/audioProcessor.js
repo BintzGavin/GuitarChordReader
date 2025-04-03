@@ -158,15 +158,28 @@ class AudioProcessor {
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
+        
+        // Check if analyser and data arrays are available
+        if (!this.analyser || !this.timeData || !this.frequencyData) {
+            console.warn("Audio processing components not initialized yet, trying again soon");
+            requestAnimationFrame(() => this.processAudio());
+            return;
+        }
 
-        // Get time domain data
-        this.analyser.getFloatTimeDomainData(this.timeData);
-        
-        // Get frequency data
-        this.analyser.getByteFrequencyData(this.frequencyData);
-        
-        // Calculate volume level with noise gating
-        const volume = this.calculateVolume();
+        try {
+            // Get time domain data
+            this.analyser.getFloatTimeDomainData(this.timeData);
+            
+            // Get frequency data
+            this.analyser.getByteFrequencyData(this.frequencyData);
+            
+            // Calculate volume level with noise gating
+            const volume = this.calculateVolume();
+        } catch (error) {
+            console.error("Error during audio processing:", error);
+            requestAnimationFrame(() => this.processAudio());
+            return;
+        }
         
         // Initialize settings if first run
         if (!this.audioSettings) {
@@ -635,57 +648,76 @@ class AudioProcessor {
      * @private
      */
     _detectOnset() {
-        // Make sure onsetDetection is properly initialized
-        if (!this.onsetDetection) {
-            this.onsetDetection = {
-                enabled: true,
-                bufferSize: 8,
-                energyThreshold: 1.4,
-                spectralFluxThreshold: 2.0,
-                lastOnsetTime: 0,
-                minTimeBetweenOnsets: 150,
-                energyHistory: [],
-                spectralHistory: []
-            };
-        }
-        
-        if (!this.onsetDetection.enabled) return false;
-        
-        const now = Date.now();
-        
-        // Don't check for onsets too frequently
-        if (now - this.onsetDetection.lastOnsetTime < this.onsetDetection.minTimeBetweenOnsets) {
-            return false;
-        }
-        
-        // Calculate current frame energy
-        let currentEnergy = 0;
-        for (let i = 0; i < this.timeData.length; i++) {
-            currentEnergy += this.timeData[i] * this.timeData[i];
-        }
-        currentEnergy = Math.sqrt(currentEnergy / this.timeData.length);
-        
-        // Add to history
-        this.onsetDetection.energyHistory.push(currentEnergy);
-        if (this.onsetDetection.energyHistory.length > this.onsetDetection.bufferSize) {
-            this.onsetDetection.energyHistory.shift();
-        }
-        
-        // Calculate spectral flux (difference in spectrum between consecutive frames)
-        // Only possible if we have at least 2 frames
-        let spectralFlux = 0;
-        if (this.onsetDetection.spectralHistory.length > 0) {
-            const previousSpectrum = this.onsetDetection.spectralHistory[this.onsetDetection.spectralHistory.length - 1];
+        try {
+            // Make sure onsetDetection is properly initialized
+            if (!this.onsetDetection) {
+                this.onsetDetection = {
+                    enabled: true,
+                    bufferSize: 8,
+                    energyThreshold: 1.4,
+                    spectralFluxThreshold: 2.0,
+                    lastOnsetTime: 0,
+                    minTimeBetweenOnsets: 150,
+                    energyHistory: [],
+                    spectralHistory: []
+                };
+            }
             
-            // Calculate flux as sum of squared differences
-            for (let i = 0; i < this.frequencyData.length; i++) {
-                const diff = (this.frequencyData[i] / 255) - previousSpectrum[i];
-                // Only count positive differences (increases in energy)
-                if (diff > 0) {
-                    spectralFlux += diff * diff;
+            // Safety check for required data
+            if (!this.timeData || !this.timeData.length || !this.frequencyData || !this.frequencyData.length) {
+                return false;
+            }
+            
+            if (!this.onsetDetection.enabled) return false;
+            
+            const now = Date.now();
+            
+            // Don't check for onsets too frequently
+            if (now - this.onsetDetection.lastOnsetTime < this.onsetDetection.minTimeBetweenOnsets) {
+                return false;
+            }
+            
+            // Calculate current frame energy
+            let currentEnergy = 0;
+            for (let i = 0; i < this.timeData.length; i++) {
+                currentEnergy += this.timeData[i] * this.timeData[i];
+            }
+            currentEnergy = Math.sqrt(currentEnergy / this.timeData.length);
+            
+            // Add to history (initialize if empty)
+            if (!this.onsetDetection.energyHistory) {
+                this.onsetDetection.energyHistory = [];
+            }
+            
+            this.onsetDetection.energyHistory.push(currentEnergy);
+            if (this.onsetDetection.energyHistory.length > this.onsetDetection.bufferSize) {
+                this.onsetDetection.energyHistory.shift();
+            }
+            
+            // Initialize spectral history if needed
+            if (!this.onsetDetection.spectralHistory) {
+                this.onsetDetection.spectralHistory = [];
+            }
+            
+            // Calculate spectral flux (difference in spectrum between consecutive frames)
+            // Only possible if we have at least 2 frames
+            let spectralFlux = 0;
+            if (this.onsetDetection.spectralHistory.length > 0) {
+                const previousSpectrum = this.onsetDetection.spectralHistory[this.onsetDetection.spectralHistory.length - 1];
+                
+                if (previousSpectrum && Array.isArray(previousSpectrum) && previousSpectrum.length > 0) {
+                    // Calculate flux as sum of squared differences
+                    const minLength = Math.min(this.frequencyData.length, previousSpectrum.length);
+                    
+                    for (let i = 0; i < minLength; i++) {
+                        const diff = (this.frequencyData[i] / 255) - previousSpectrum[i];
+                        // Only count positive differences (increases in energy)
+                        if (diff > 0) {
+                            spectralFlux += diff * diff;
+                        }
+                    }
                 }
             }
-        }
         
         // Store current spectrum
         const currentSpectrum = Array.from(this.frequencyData).map(v => v / 255);
@@ -746,6 +778,10 @@ class AudioProcessor {
         }
         
         return false;
+        } catch (error) {
+            console.error("Error in onset detection:", error);
+            return false;
+        }
     }
     
     /**
@@ -764,16 +800,42 @@ class AudioProcessor {
             };
         }
         
-        const { harmonics, weights } = this.harmonicProductSpectrum;
+        // Safety check for parameters
+        if (!this.harmonicProductSpectrum || !this.harmonicProductSpectrum.harmonics || !this.harmonicProductSpectrum.weights) {
+            console.error("HarmonicProductSpectrum not properly initialized");
+            return; // Exit without processing
+        }
+        
+        const harmonics = this.harmonicProductSpectrum.harmonics || 3;
+        const weights = this.harmonicProductSpectrum.weights || [1.0, 0.85, 0.55];
+        
+        // Safety check for spectral data
+        if (!spectralData || !Array.isArray(spectralData) || spectralData.length === 0) {
+            console.error("No spectral data available for HPS processing");
+            return; // Exit without processing
+        }
         
         // Group spectral data by pitch class
         const pitchClassData = Array(12).fill().map(() => []);
         
         // Assign each frequency to its pitch class
-        for (const { frequency, energy } of spectralData) {
+        for (const entry of spectralData) {
+            // Safety check for valid data
+            if (!entry || typeof entry.frequency !== 'number' || typeof entry.energy !== 'number') {
+                continue; // Skip invalid entries
+            }
+            
+            const frequency = entry.frequency;
+            const energy = entry.energy;
+            
+            // Calculate note number and pitch class
             const noteNumber = 12 * Math.log2(frequency / 440) + 69;
             const pitchClass = Math.round(noteNumber) % 12;
-            pitchClassData[pitchClass].push({ frequency, energy });
+            
+            // Ensure valid pitch class (0-11)
+            if (pitchClass >= 0 && pitchClass < 12) {
+                pitchClassData[pitchClass].push({ frequency, energy });
+            }
         }
         
         // Apply HPS to each pitch class separately
