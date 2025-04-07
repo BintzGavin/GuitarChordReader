@@ -101,8 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
             lastVolumeActivity = 0;
             volumeActivityThreshold = 0.12; // Lower threshold with better noise handling
             
-            // Noise control
-            minVolumeForChord = 0.06; // Lower threshold with better noise filtering
+            // Noise control - make even more sensitive 
+            minVolumeForChord = 0.02; // Very low threshold to detect quieter playing
             inNoiseHandlingMode = false; // Special noise handling active
 
             // Create a map to track rejected chords

@@ -142,16 +142,15 @@ class AudioProcessor {
         try {
             console.log("Requesting microphone access...");
             
-            // Request microphone access
+            // Request microphone access - simplify the constraints to avoid potential browser issues
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { 
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: false
-                } 
+                audio: true
             });
             
+            console.log("Successfully got media stream");
+            
             console.log("Microphone access granted!");
+            console.log("Successfully got media stream");
             
             // Create microphone source
             this.microphone = this.audioContext.createMediaStreamSource(stream);
@@ -325,7 +324,7 @@ class AudioProcessor {
         if (!this.audioSettings) {
             this.audioSettings = {
                 // Hysteresis to prevent rapid on/off flickering around threshold
-                silenceThreshold: 0.08,  // Min volume to process
+                silenceThreshold: 0.02,  // Min volume to process
                 silenceHysteresis: 0.03, // Additional headroom before turning off
                 silenceCounter: 0,       // Counter for silence frames
                 silenceFramesRequired: 10, // Frames of silence before stopping chord detection
@@ -412,6 +411,7 @@ class AudioProcessor {
             const chromagram = this.extractChromagram();
             
             // Detect chord using the chord detector
+            console.log("Chromagram data:", chromagram, "Volume:", volume);
             const chordResult = this.chordDetector.detectChord(chromagram, volume);
             
             // Send the processed results
@@ -553,9 +553,9 @@ class AudioProcessor {
             this.isNewChordPossible = true;
         }
         
-        // Higher energy threshold when volume is low to reduce false positives
+        // Use a much lower threshold to detect even quiet playing
         const dynamicEnergyThreshold = this.isNewChordPossible ? 
-            this.energyThreshold * 0.65 : this.energyThreshold * 1.3;
+            this.energyThreshold * 0.35 : this.energyThreshold * 0.7;
         
         // Store spectral data for harmonic product spectrum calculation
         let spectralData = [];
@@ -571,6 +571,7 @@ class AudioProcessor {
             
             // Get energy at this frequency bin (0-1)
             const energy = this.frequencyData[i] / 255;
+            if (energy > 0.05) { console.log(`Detected frequency: ${frequency} Hz with energy: ${energy}`); }
             
             // Store for HPS calculation
             spectralData.push({ frequency, energy });
@@ -607,6 +608,7 @@ class AudioProcessor {
         
         if (sum > 0) {
             normalizedChroma = cleanedChroma.map(value => value / sum);
+            console.log("Normalized chromagram with sum:", sum, normalizedChroma);
         }
         
         // Add to history for smoothing
@@ -658,6 +660,7 @@ class AudioProcessor {
             this.isNewChordPossible = false;
         }
         
+        console.log("Final smoothed chromagram:", smoothedChroma);
         return smoothedChroma;
     }
     

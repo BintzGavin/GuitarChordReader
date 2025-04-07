@@ -136,6 +136,7 @@ class ChordDetector {
      * @returns {Object} Detected chord information (name, type, confidence)
      */
     detectChord(chromagram, volume, isNewStrum = false) {
+        console.log("ChordDetector received:", { chromagram, volume, isNewStrum });
         // Handle low volume
         if (volume < this.minVolumeThreshold) {
             this.noChordFrames++;
