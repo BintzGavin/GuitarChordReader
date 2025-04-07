@@ -324,7 +324,7 @@ class AudioProcessor {
         if (!this.audioSettings) {
             this.audioSettings = {
                 // Hysteresis to prevent rapid on/off flickering around threshold
-                silenceThreshold: 0.02,  // Min volume to process
+                silenceThreshold: 0.01,  // Min volume to process (lowered for better sensitivity)
                 silenceHysteresis: 0.03, // Additional headroom before turning off
                 silenceCounter: 0,       // Counter for silence frames
                 silenceFramesRequired: 10, // Frames of silence before stopping chord detection
@@ -413,6 +413,7 @@ class AudioProcessor {
             // Detect chord using the chord detector
             console.log("Chromagram data:", chromagram, "Volume:", volume);
             const chordResult = this.chordDetector.detectChord(chromagram, volume);
+            console.log("Chord detected:", chordResult);
             
             // Send the processed results
             if (this.onAudioProcessed) {
@@ -470,7 +471,7 @@ class AudioProcessor {
             this.volumeHistory = Array(10).fill(0);
             this.volumeHistoryIndex = 0;
             this.attackThreshold = 0.05; // Threshold for detecting a guitar attack
-            this.silenceThreshold = 0.02; // Threshold for silence
+            this.silenceThreshold = 0.01; // Threshold for silence (lowered for better sensitivity)
             this.attackState = false; // Track if we're in an attack state
             this.attackStartTime = 0; // When the current attack started
             this.attackMinDuration = 300; // Min duration (ms) between separate attacks

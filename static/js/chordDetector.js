@@ -267,6 +267,9 @@ class ChordDetector {
         const chordInfo = this._getChordInfo(bestMatchChord);
         const confidence = this._calculateConfidence(bestMatchChord, bestMatchScore, cleanedChroma);
         
+        // Enhanced logging for chord detection
+        console.log(`Detected ${chordInfo.displayName} ${chordInfo.type} with confidence ${confidence.toFixed(2)}`);
+
         return {
             name: chordInfo.displayName,
             type: chordInfo.type,
