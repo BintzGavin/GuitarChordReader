@@ -4,130 +4,69 @@
  */
 class ChordDetector {
     constructor() {
-        // Chord templates (normalized energy distribution for each chord)
+        // Define chord templates as chromagram patterns (normalized vectors)
         this.chordTemplates = {
             // Major chords
-            'C': { type: 'Major', template: [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0] },
-            'C#': { type: 'Major', template: [0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0] },
-            'D': { type: 'Major', template: [0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0] },
-            'D#': { type: 'Major', template: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0] },
-            'E': { type: 'Major', template: [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1] },
-            'F': { type: 'Major', template: [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0] },
-            'F#': { type: 'Major', template: [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0] },
-            'G': { type: 'Major', template: [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1] },
-            'G#': { type: 'Major', template: [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0] },
-            'A': { type: 'Major', template: [0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0] },
-            'A#': { type: 'Major', template: [0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0] },
-            'B': { type: 'Major', template: [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1] },
+            'C': [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+            'C#': [0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+            'D': [0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+            'D#': [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0],
+            'E': [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1],
+            'F': [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+            'F#': [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+            'G': [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+            'G#': [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+            'A': [0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+            'A#': [0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+            'B': [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1],
             
             // Minor chords
-            'Cm': { type: 'Minor', template: [1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0] },
-            'C#m': { type: 'Minor', template: [0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] },
-            'Dm': { type: 'Minor', template: [0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0] },
-            'D#m': { type: 'Minor', template: [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0] },
-            'Em': { type: 'Minor', template: [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1] },
-            'Fm': { type: 'Minor', template: [1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0] },
-            'F#m': { type: 'Minor', template: [0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0] },
-            'Gm': { type: 'Minor', template: [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0] },
-            'G#m': { type: 'Minor', template: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1] },
-            'Am': { type: 'Minor', template: [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0] },
-            'A#m': { type: 'Minor', template: [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0] },
-            'Bm': { type: 'Minor', template: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
+            'Cm': [1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+            'C#m': [0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+            'Dm': [0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+            'D#m': [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0],
+            'Em': [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+            'Fm': [1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+            'F#m': [0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+            'Gm': [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+            'G#m': [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1],
+            'Am': [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+            'A#m': [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+            'Bm': [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
             
-            // 7th chords with more accuracy
-            'C7': { type: 'Dominant 7', template: [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0] },
-            'D7': { type: 'Dominant 7', template: [0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1] },
-            'E7': { type: 'Dominant 7', template: [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1] },
-            'G7': { type: 'Dominant 7', template: [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1] },
-            'A7': { type: 'Dominant 7', template: [0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1] },
+            // Seventh chords (common ones for guitar)
+            'G7': [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+            'C7': [1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0],
+            'D7': [0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1],
+            'E7': [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1],
+            'A7': [0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1],
             
-            // Major 7th chords
-            'Cmaj7': { type: 'Major 7', template: [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1] },
-            'Dmaj7': { type: 'Major 7', template: [0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0] },
-            'Fmaj7': { type: 'Major 7', template: [1, 0, 0, 0, 0.6, 1, 0, 0, 0, 0.7, 0, 0.8] }, // F Major 7th (F, A, C, E)
-            'Gmaj7': { type: 'Major 7', template: [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1] },
+            // Major seventh chords
+            'Cmaj7': [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+            'Fmaj7': [1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0],
+            'Gmaj7': [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
             
-            // Minor 7th chords
-            'Am7': { type: 'Minor 7', template: [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1] },
-            'Em7': { type: 'Minor 7', template: [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1] },
-            'Dm7': { type: 'Minor 7', template: [0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0] },
-            
-            // Sus chords
-            'Dsus4': { type: 'Sus4', template: [0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0] },
-            'Esus4': { type: 'Sus4', template: [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1] },
-            'Asus4': { type: 'Sus4', template: [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1] },
-            'Asus2': { type: 'Sus2', template: [0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0] },
+            // Sus2 and Sus4 chords
+            'Asus2': [0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+            'Asus4': [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+            'Dsus2': [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+            'Dsus4': [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+            'Esus2': [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1],
+            'Esus4': [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1],
         };
         
-        // Common acoustic guitar chord voicings with more precise templates based on harmonic analysis
-        this.acousticGuitarTemplates = {
-            // Open chord shapes on acoustic guitar with detailed frequency profiles
-            'C': { type: 'Major', template: [3.5, 0, 0, 0, 2.2, 0, 0, 3.8, 0, 0, 0, 1.2] }, // E, G, and C emphasized
-            'D': { type: 'Major', template: [0, 0, 4.5, 0, 0, 0, 3.2, 0, 0, 2.5, 0, 0] }, // D with F# and A
-            'Dm': { type: 'Minor', template: [0, 0, 4.5, 0, 0, 3.2, 0, 0, 0, 2.5, 0, 0] }, // D minor with F and A
-            'E': { type: 'Major', template: [0, 0, 0, 0, 7.2, 0, 0, 0, 4.5, 0, 0, 2.8] }, // E, B, and G# with strong root
-            'G': { type: 'Major', template: [0, 0, 2.2, 0, 0, 0, 2.4, 5.5, 0, 0, 0, 3.2] }, // G, D, and B with strong G 
-            'A': { type: 'Major', template: [0, 1.2, 0, 0, 3.2, 0, 0, 0, 0, 2.8, 0, 0] }, // A and E emphasized
-            
-            'Em': { type: 'Minor', template: [0, 0, 0, 0, 6.5, 0, 0, 3.2, 0, 0, 0, 2.4] }, // E, B, and G emphasized
-            'Am': { type: 'Minor', template: [3.2, 0, 0, 0, 4.5, 0, 0, 0, 0, 2.8, 0, 0] }, // A and E emphasized with C
-            
-            // Extended and special chords with more accurate harmonic profiles
-            'Fmaj7': { type: 'Major 7', template: [2.5, 0, 0, 0, 1.2, 2.8, 0, 0, 0, 1.5, 0, 1.2] }, // F, A, C, E 
-            'G7': { type: 'Dominant 7', template: [0, 0, 2.6, 0, 0, 0, 0, 4.8, 0, 0, 1.8, 3.0] }, // G, D, F, B
-            'E7': { type: 'Dominant 7', template: [0, 0, 0, 0, 6.8, 0, 0, 0, 3.8, 0, 3.2, 2.4] }, // E, G#, D, B
-            'Am7': { type: 'Minor 7', template: [3.0, 0, 0, 0, 3.8, 0, 0, 0, 0, 2.6, 0, 1.8] }, // A, C, E, G
-            'Dsus4': { type: 'Sus4', template: [0, 0, 4.2, 0, 0, 0, 0, 2.8, 0, 3.0, 0, 0] }, // D, G, A
-        };
+        // Initialize tracking for chord consistency over time
+        this.previousChroma = Array(12).fill(0);
+        this.chordHistory = [];
+        this.historyDepth = 3; // Number of previous chords to track
+        this.confidenceThreshold = 0.55; // Min confidence to consider a chord valid
+        this.noChordThreshold = 0.02; // Min chroma value to detect a valid note
+        this.chromaticSmoothingFactor = 0.8; // How much to smooth chromagram over time
+        this.contextWeighting = 0.2; // How much musical context affects detection
         
-        // Combine templates, with acoustic templates taking precedence for better real-world accuracy
-        this.templates = { ...this.chordTemplates, ...this.acousticGuitarTemplates };
-        
-        // Advanced state tracking for better stability
-        this.previousChord = '';
-        this.chordStability = 0;
-        this.noChordFrames = 0;
-        this.chordConfidenceHistory = {}; // Track confidence values for recent chords
-        this.chordCountThisSession = {}; // Count detections of each chord type
-        this.totalChordDetections = 0; // Total number of chord detections
-        
-        // Advanced settings for better chord detection
-        this.minVolumeThreshold = 0.01; // Keep this low to catch quieter playing
-        this.stabilityThreshold = 5; // Lowered to make faster transitions with the improved processing
-        this.noiseFloor = 0.12; // Lowered to capture more harmonic content with better noise filtering
-        this.chordDecayTime = 10; // Frames to keep showing previous chord after silence
-        this.detectionMemory = 30; // Frames to remember chord confidence in history
-        
-        // Improved chromagram smoothing
-        this.prevChromagrams = [];
-        this.chromagramSmoothingFrames = 3; // Number of frames to use for smoothing
-        
-        // More sophisticated chord penalties to adjust for over-detection
-        // Calibrated with the new processing pipeline
-        this.chordPenalties = {
-            'F': 0.13,  // Penalize F chord which is over-detected
-            'F#': 0.09, // Slight penalty for F#
-            'C#': 0.07, // Slight penalty for C#
-            'Em': 0.10, // Penalize Em which got falsely detected (reduced since improved processing)
-            'Fmaj7': 0.12, // Penalize Fmaj7 to prevent over-detection (reduced with better detection)
-            'C': 0.06,  // Slight penalty for C (reduced with better harmonic processing)
-            'G#': 0.08, // Penalty for G# which can be falsely detected
-            'A#': 0.07  // Penalty for A# which can be falsely detected
-        };
-        
-        // Chord precedence and relationship modeling
-        this.chordRelationships = {
-            // Common chord relationships in music theory weighted by strength of relationship
-            'C': { 'F': 0.8, 'G': 0.9, 'Am': 0.7, 'Em': 0.5, 'Dm': 0.6 },
-            'G': { 'C': 0.9, 'D': 0.7, 'Em': 0.8, 'Am': 0.5 },
-            'D': { 'G': 0.8, 'A': 0.9, 'Bm': 0.6, 'Em': 0.6 },
-            'A': { 'D': 0.9, 'E': 0.8, 'F#m': 0.6 },
-            'E': { 'A': 0.9, 'B': 0.7, 'C#m': 0.6, 'Am': 0.5 },
-            'Am': { 'C': 0.8, 'Dm': 0.7, 'E': 0.9, 'F': 0.6, 'G': 0.7 },
-            'Em': { 'C': 0.7, 'G': 0.8, 'D': 0.7, 'Am': 0.6, 'B': 0.6 }
-        };
+        console.log("ChordDetector created successfully");
     }
-
+    
     /**
      * Detect a chord from chromagram data with advanced music theory and acoustic modeling
      * @param {Array} chromagram 12-element array representing the chromagram
@@ -136,146 +75,84 @@ class ChordDetector {
      * @returns {Object} Detected chord information (name, type, confidence)
      */
     detectChord(chromagram, volume, isNewStrum = false) {
-        console.log("ChordDetector received:", { chromagram, volume, isNewStrum });
-        // Handle low volume
-        if (volume < this.minVolumeThreshold) {
-            this.noChordFrames++;
-            
-            // Return no chord only after significant silence
-            if (this.noChordFrames > this.chordDecayTime) {
-                this.previousChord = '';
-                this.chordStability = 0;
-                return { 
-                    name: '', 
-                    type: '', 
-                    confidence: 0,
-                    isStable: false
-                };
-            }
-            
-            // Return the previous chord with decreasing confidence during decay
-            if (this.previousChord) {
-                const decayFactor = Math.max(0, 1 - (this.noChordFrames / this.chordDecayTime));
-                
-                // Get the chord type from the template information
-                const chordInfo = this._getChordInfo(this.previousChord);
-                
-                return {
-                    name: chordInfo.displayName,
-                    type: chordInfo.type,
-                    confidence: 0.8 * decayFactor, // Higher starting confidence for stability
-                    isStable: this.chordStability >= this.stabilityThreshold
-                };
-            }
-            
-            return { name: '', type: '', confidence: 0, isStable: false };
+        // Don't detect chords with not enough energy
+        if (volume < 0.005 || !chromagram) {
+            return { name: "", type: "", confidence: 0, isStable: false };
         }
         
-        this.noChordFrames = 0;
+        console.log("ChordDetector received:", {
+            chromagram,
+            volume,
+            isNewStrum
+        });
         
-        // If this is a new strum and we have an existing stable chord,
-        // we'll be more likely to recognize chord changes (reset stability threshold)
-        if (isNewStrum && this.chordStability >= this.stabilityThreshold) {
-            this.chordStability = Math.floor(this.stabilityThreshold * 0.3);
+        // Process chromagram with smoothing and normalization
+        const cleanedChroma = this._getSmoothedChromagram(chromagram, isNewStrum);
+        
+        // Check if there's enough data for a chord (noise gate)
+        // Check if there's enough harmonic content to be a chord
+        const hasChordContent = cleanedChroma.some(v => v > this.noChordThreshold);
+        if (!hasChordContent) {
+            return { name: "", type: "", confidence: 0, isStable: false };
         }
         
-        // Store this chromagram for advanced smoothing
-        this.prevChromagrams.push([...chromagram]);
-        if (this.prevChromagrams.length > this.chromagramSmoothingFrames) {
-            this.prevChromagrams.shift();
-        }
+        // Compare with chord templates to find matches
+        const chordCandidates = [];
         
-        // Apply adaptive smoothing based on context
-        const smoothedChroma = this._getSmoothedChromagram(chromagram, isNewStrum);
-        
-        // Normalize the chromagram more precisely
-        const maxVal = Math.max(...smoothedChroma, 0.0001); // Avoid division by zero
-        const normalizedChroma = smoothedChroma.map(val => val / maxVal);
-        
-        // Apply adaptive noise floor - zero out low values
-        const dynamicNoiseFloor = isNewStrum ? this.noiseFloor * 0.8 : this.noiseFloor;
-        const cleanedChroma = normalizedChroma.map(val => val < dynamicNoiseFloor ? 0 : val);
-        
-        // Store chord candidates with their scores for more sophisticated selection
-        let chordCandidates = [];
-        
-        // Try each chord template with context-aware scoring
-        for (const [chordName, chordInfo] of Object.entries(this.templates)) {
-            const template = chordInfo.template;
-            
-            // Calculate primary similarity (cosine similarity between template and chromagram)
+        for (const [chordName, template] of Object.entries(this.chordTemplates)) {
+            // Calculate similarity using cosine similarity
             let similarity = this.cosineSimilarity(cleanedChroma, template);
             
-            // Apply basic penalty to over-detected chords
-            if (this.chordPenalties[chordName]) {
-                similarity -= this.chordPenalties[chordName];
-            }
-            
-            // Advanced chord-specific detection logic
+            // Apply special rules for specific chords to compensate for acoustic anomalies
             similarity = this._applyChordSpecificRules(chordName, cleanedChroma, similarity);
             
-            // Context-aware chord relationship boosting
+            // Boost certain patterns that are commonly undercounted
             similarity = this._applyChordContextBoost(chordName, similarity);
             
-            // Store this candidate
             chordCandidates.push({
                 name: chordName,
-                score: similarity,
-                info: chordInfo
+                similarity
             });
         }
         
-        // Sort chord candidates by score (highest first)
-        chordCandidates.sort((a, b) => b.score - a.score);
+        // Sort candidates by similarity
+        chordCandidates.sort((a, b) => b.similarity - a.similarity);
         
-        // Get top two candidates for potential conflict resolution
-        const topCandidate = chordCandidates[0] || { name: '', score: 0, info: { type: '' } };
-        const secondCandidate = chordCandidates[1] || { name: '', score: 0, info: { type: '' } };
+        // Get top candidates
+        const topCandidate = chordCandidates[0];
+        const secondCandidate = chordCandidates[1];
         
-        // Apply conflict resolution for ambiguous chord detections
-        const resolvedChord = this._resolveChordConflicts(topCandidate, secondCandidate, cleanedChroma);
-        let bestMatchChord = resolvedChord.name;
-        let bestMatchScore = resolvedChord.score;
-        
-        // Update chord detection history
-        this._updateChordHistory(bestMatchChord, bestMatchScore);
-        
-        // Check if the detected chord matches the previous one for stability tracking
-        if (bestMatchChord === this.previousChord) {
-            this.chordStability++;
-        } else {
-            // For new chord detections, apply additional validation
-            if (this._isValidChordTransition(this.previousChord, bestMatchChord)) {
-                this.chordStability = isNewStrum ? 2 : 0; // Give a small stability bonus on clear strums
-                this.previousChord = bestMatchChord;
-            } else {
-                // If the transition seems implausible, require stronger evidence
-                const stabilityNeeded = Math.min(3, this.chordStability);
-                if (bestMatchScore > (topCandidate.score * 1.2) || isNewStrum) {
-                    this.chordStability = 0;
-                    this.previousChord = bestMatchChord;
-                } else {
-                    // Otherwise keep the previous chord until we're more confident
-                    bestMatchChord = this.previousChord;
-                    // But reduce stability to allow eventual changes
-                    this.chordStability = Math.max(0, this.chordStability - 1);
-                }
-            }
+        // Handle ambiguity between close matches
+        let finalChord = topCandidate;
+        if (
+            secondCandidate && 
+            (topCandidate.similarity - secondCandidate.similarity < 0.1) &&
+            topCandidate.similarity < 0.7
+        ) {
+            // If the top two candidates are close, use context and deeper analysis
+            finalChord = this._resolveChordConflicts(topCandidate, secondCandidate, cleanedChroma);
         }
         
-        // Calculate dynamic confidence based on multiple factors
-        const chordInfo = this._getChordInfo(bestMatchChord);
-        const confidence = this._calculateConfidence(bestMatchChord, bestMatchScore, cleanedChroma);
+        // Calculate confidence (0-1)
+        const confidence = this._calculateConfidence(finalChord.name, finalChord.similarity, cleanedChroma);
         
-        // Enhanced logging for chord detection
-        console.log(`Detected ${chordInfo.displayName} ${chordInfo.type} with confidence ${confidence.toFixed(2)}`);
-
-        return {
-            name: chordInfo.displayName,
-            type: chordInfo.type,
+        // Update tracking for this detection
+        this._updateChordHistory(finalChord.name, confidence);
+        
+        // Extract chord information for display
+        const { displayName, type } = this._getChordInfo(finalChord.name);
+        
+        // Return the result
+        const result = {
+            name: displayName,
+            type: type,
             confidence: confidence,
-            isStable: this.chordStability >= this.stabilityThreshold
+            // A chord is considered stable if confidence is high
+            isStable: confidence > this.confidenceThreshold
         };
+        
+        console.log("Chord detected:", result);
+        return result;
     }
     
     /**
@@ -286,42 +163,26 @@ class ChordDetector {
      * @private
      */
     _getSmoothedChromagram(currentChroma, isNewStrum) {
-        // If we don't have enough frames for smoothing
-        if (this.prevChromagrams.length < 2) {
-            return [...currentChroma];
-        }
+        // Use a normalized copy to avoid modifying the original
+        const normalizedChroma = [...currentChroma];
         
-        let smoothedChroma;
+        // Apply temporal smoothing, but less if we detected a new strum
+        const smoothingFactor = isNewStrum ? 0.4 : this.chromaticSmoothingFactor;
         
-        if (isNewStrum) {
-            // On new strums, give more weight to the current frame
-            smoothedChroma = currentChroma.map((val, i) => {
-                const prevVal = this.prevChromagrams[this.prevChromagrams.length - 2][i];
-                return val * 0.85 + prevVal * 0.15; // Heavily weighted toward current frame
-            });
-        } else {
-            // Otherwise adaptive weighted smoothing based on chord stability
-            smoothedChroma = new Array(12).fill(0);
-            let totalWeight = 0;
-            
-            // Number of frames to consider - use fewer if we're in a stable chord
-            const framesUsed = this.chordStability >= this.stabilityThreshold ? 
-                Math.min(2, this.prevChromagrams.length) : this.prevChromagrams.length;
-            
-            for (let i = 0; i < framesUsed; i++) {
-                // Use reversed index to weight recent frames more
-                const idx = this.prevChromagrams.length - 1 - i;
-                // Exponential weighting with stronger recent emphasis
-                const frameWeight = Math.pow(2.2, framesUsed - i - 1); 
-                totalWeight += frameWeight;
-                
-                for (let j = 0; j < 12; j++) {
-                    smoothedChroma[j] += this.prevChromagrams[idx][j] * frameWeight;
-                }
+        // Blend with previous chromagram for stability
+        const smoothedChroma = normalizedChroma.map((value, i) => 
+            (value * (1 - smoothingFactor)) + (this.previousChroma[i] * smoothingFactor)
+        );
+        
+        // Store for next time
+        this.previousChroma = [...smoothedChroma];
+        
+        // Normalize again after smoothing for consistent comparison
+        const chromaSum = smoothedChroma.reduce((sum, value) => sum + value, 0);
+        if (chromaSum > 0) {
+            for (let i = 0; i < smoothedChroma.length; i++) {
+                smoothedChroma[i] /= chromaSum;
             }
-            
-            // Normalize by total weight
-            smoothedChroma = smoothedChroma.map(val => val / totalWeight);
         }
         
         return smoothedChroma;
@@ -337,15 +198,26 @@ class ChordDetector {
      */
     _applyChordSpecificRules(chordName, chromagram, similarity) {
         // Special handling for E/Em which have unique acoustic properties
-        if (chordName === 'E' || chordName === 'Em') {
-            // E chord should have strong E note (4) and B note (11), with possible G# (8) or G (7)
-            const hasStrongE = chromagram[4] > 0.7;
+        if (chordName === 'E') {
+            // E chord should have strong E note (4) and B note (11), with G# (8)
+            const hasStrongE = chromagram[4] > 0.65;
             const hasB = chromagram[11] > 0.3;
-            const hasGorGsharp = (chordName === 'E' ? chromagram[8] > 0.2 : chromagram[7] > 0.2);
+            const hasGsharp = chromagram[8] > 0.2;
             
             if (hasStrongE && hasB) {
-                similarity += 0.08;
-                if (hasGorGsharp) similarity += 0.04; // Extra boost if third is present
+                similarity += 0.1;
+                if (hasGsharp) similarity += 0.05; // Extra boost if third is present
+            }
+        } else if (chordName === 'Em') {
+            // Em chord should have strong E note (4) and B note (11), with G (7)
+            const hasStrongE = chromagram[4] > 0.55; // Lowered for better Em detection
+            const hasB = chromagram[11] > 0.3;
+            const hasG = chromagram[7] > 0.15; // Minor third detection
+            
+            if (hasStrongE) {
+                similarity += 0.12; // Increased boost for Em
+                if (hasB) similarity += 0.06;
+                if (hasG) similarity += 0.05; // Extra boost if minor third is present
             }
         }
         
@@ -357,11 +229,16 @@ class ChordDetector {
             const hasA = chromagram[9] > 0.4;  // A
             const hasC = chromagram[0] > 0.3;  // C
             
-            // If we have a very clear Fmaj7 pattern
+            // If we have a very clear Fmaj7 pattern - but make it more strict
             if (hasStrongF && hasE && hasA && hasC) {
-                similarity += 0.12;
+                similarity += 0.08; // Reduced from 0.12 to make it less sensitive
             } else if (hasStrongF && hasE) {
-                similarity += 0.06;
+                similarity += 0.04; // Reduced from 0.06
+            }
+            
+            // Additional check to prevent false positives on Fmaj7
+            if (chromagram[5] < 0.55 || chromagram[4] < 0.4) {
+                similarity -= 0.15; // Strong penalty if F or E aren't strong enough
             }
         } else if (chordName === 'C') {
             // C needs strong C, E, G components
@@ -378,7 +255,7 @@ class ChordDetector {
             const hasStrongE = chromagram[4] > 0.7;
             const hasStrongF = chromagram[5] > 0.7;
             if (hasStrongE && hasStrongF && chromagram[0] < 0.6) {
-                similarity -= 0.10;
+                similarity -= 0.15; // Increased penalty
             }
         } else if (chordName === 'G') {
             // G needs strong G, B, D components
@@ -402,13 +279,14 @@ class ChordDetector {
             }
         } else if (chordName === 'Am') {
             // Am needs strong A, C, E components
-            const hasStrongA = chromagram[9] > 0.65; // A
-            const hasC = chromagram[0] > 0.4;  // C
-            const hasE = chromagram[4] > 0.4;  // E
+            const hasStrongA = chromagram[9] > 0.55; // Lowered for better Am detection (was 0.65)
+            const hasC = chromagram[0] > 0.3;  // C - lowered threshold 
+            const hasE = chromagram[4] > 0.3;  // E - lowered threshold
             
-            if (hasStrongA && (hasC || hasE)) {
-                similarity += 0.07;
-                if (hasC && hasE) similarity += 0.04; // Extra boost for all three
+            if (hasStrongA) {
+                similarity += 0.1; // Increased boost for Am
+                if (hasC) similarity += 0.05;
+                if (hasE) similarity += 0.05; // Extra boost for all three
             }
         }
         
@@ -423,33 +301,21 @@ class ChordDetector {
      * @private
      */
     _applyChordContextBoost(chordName, similarity) {
-        // If we have a stable previous chord and chord relationship data
-        if (this.previousChord && 
-            this.chordStability >= 2 && 
-            this.chordRelationships[this.previousChord]) {
-            
-            // Get relationship strength between previous chord and this one
-            const relationshipStrength = this.chordRelationships[this.previousChord][chordName] || 0;
-            
-            // Apply a small boost based on music theory relationships
-            // This helps prioritize chords that make musical sense in sequence
-            if (relationshipStrength > 0) {
-                // Scale the boost by relationship strength
-                const boost = 0.03 * relationshipStrength;
-                similarity += boost;
-            }
+        // Look at recent chord history for context-aware boosting
+        if (this.chordHistory.length === 0) {
+            return similarity; // No history yet
         }
         
-        // Consider frequency of chords played in this session
-        // This helps prevent random outlier detections
-        if (this.totalChordDetections > 10) {
-            const chordFrequency = (this.chordCountThisSession[chordName] || 0) / this.totalChordDetections;
-            
-            if (chordFrequency > 0.1) {
-                // Slight boost for commonly played chords in this session
-                // This helps maintain consistency in a given playing session
-                similarity += 0.02;
-            }
+        const recentChord = this.chordHistory[this.chordHistory.length - 1].name;
+        
+        // Slight boost for chord repetition (stability)
+        if (chordName === recentChord) {
+            similarity += 0.03;
+        }
+        
+        // Slight boost for common chord progressions
+        if (this._isValidChordTransition(recentChord, chordName)) {
+            similarity += this.contextWeighting;
         }
         
         return similarity;
@@ -464,62 +330,51 @@ class ChordDetector {
      * @private
      */
     _resolveChordConflicts(topCandidate, secondCandidate, chromagram) {
-        // If the scores are very close, we need more analysis
-        const scoreDifference = topCandidate.score - secondCandidate.score;
+        // Handle specific ambiguities with detailed analysis
+        // Common ambiguities: major/minor, major/7th, add/sus variants
         
-        if (scoreDifference < 0.05 && secondCandidate.score > 0) {
-            // These chords are ambiguous, need deeper analysis
+        const areRelated = (
+            // Check if one is minor variant of the other
+            (topCandidate.name === secondCandidate.name + 'm') ||
+            (secondCandidate.name === topCandidate.name + 'm') ||
+            // Check if one is seventh variant
+            (topCandidate.name === secondCandidate.name + '7') ||
+            (secondCandidate.name === topCandidate.name + '7')
+        );
+        
+        if (areRelated) {
+            // For related chord types, use specific rules
             
-            // Check specific tough chord pairs
-            if ((topCandidate.name === 'C' && secondCandidate.name === 'Fmaj7') ||
-                (topCandidate.name === 'Fmaj7' && secondCandidate.name === 'C')) {
+            // Check for minor vs major (look for third)
+            if (topCandidate.name.endsWith('m') && !secondCandidate.name.endsWith('m')) {
+                // Check for minor third presence
+                const rootIndex = this._getNoteIndex(topCandidate.name.replace('m', ''));
+                const minorThirdIndex = (rootIndex + 3) % 12;
+                const majorThirdIndex = (rootIndex + 4) % 12;
                 
-                // Check with stricter rules for this specific ambiguity
-                const cScore = topCandidate.name === 'C' ? topCandidate.score : secondCandidate.score;
-                const fmaj7Score = topCandidate.name === 'Fmaj7' ? topCandidate.score : secondCandidate.score;
-                
-                // C should have strong C and G with moderate E
-                const cStrength = (chromagram[0] * 1.5 + chromagram[7] * 1.2 + chromagram[4] * 0.8);
-                
-                // Fmaj7 should have strong F, moderate A and C, with present E
-                const fMaj7Strength = (chromagram[5] * 1.5 + chromagram[9] * 0.9 + 
-                                      chromagram[0] * 0.8 + chromagram[4] * 1.2);
-                
-                if (fMaj7Strength > cStrength * 1.1) {
-                    return { name: 'Fmaj7', score: fmaj7Score + 0.03 };
-                } else if (cStrength > fMaj7Strength * 1.1) {
-                    return { name: 'C', score: cScore + 0.03 };
+                if (chromagram[minorThirdIndex] > chromagram[majorThirdIndex] * 1.2) {
+                    return topCandidate; // Favor minor
+                } else if (chromagram[majorThirdIndex] > chromagram[minorThirdIndex] * 1.2) {
+                    return secondCandidate; // Favor major
                 }
             }
             
-            // Similar analysis for other problematic chord pairs
-            else if ((topCandidate.name === 'Em' && secondCandidate.name === 'G') ||
-                    (topCandidate.name === 'G' && secondCandidate.name === 'Em')) {
+            // For seventh chords, look for the seventh interval
+            if (topCandidate.name.endsWith('7') || topCandidate.name.endsWith('maj7')) {
+                const rootIndex = this._getNoteIndex(topCandidate.name.replace('7', '').replace('maj', ''));
+                const seventhIndex = (rootIndex + 10) % 12; // Minor seventh
+                const majSeventhIndex = (rootIndex + 11) % 12; // Major seventh
                 
-                // Em has strong E, B and G notes
-                const emStrength = (chromagram[4] * 1.5 + chromagram[11] * 1.2 + chromagram[7]);
-                
-                // G has strong G, B and D notes
-                const gStrength = (chromagram[7] * 1.5 + chromagram[11] * 0.8 + 
-                                 chromagram[2] * 1.2);
-                
-                if (gStrength > emStrength * 1.15) {
-                    return { name: 'G', score: Math.max(topCandidate.score, secondCandidate.score) + 0.02 };
-                } else if (emStrength > gStrength * 1.1) {
-                    return { name: 'Em', score: Math.max(topCandidate.score, secondCandidate.score) + 0.02 };
+                if (topCandidate.name.endsWith('maj7') && chromagram[majSeventhIndex] > 0.15) {
+                    return topCandidate; // Favor major seventh
+                } else if (topCandidate.name.endsWith('7') && chromagram[seventhIndex] > 0.15) {
+                    return topCandidate; // Favor dominant seventh
                 }
-            }
-            
-            // If current chord is stable, prefer it in ambiguous cases
-            if (this.previousChord === topCandidate.name && this.chordStability >= 2) {
-                return { name: topCandidate.name, score: topCandidate.score + 0.04 };
-            } else if (this.previousChord === secondCandidate.name && this.chordStability >= 2) {
-                return { name: secondCandidate.name, score: secondCandidate.score + 0.04 };
             }
         }
         
-        // Default: return the top candidate
-        return { name: topCandidate.name, score: topCandidate.score };
+        // If no special resolution applied, stick with the top candidate
+        return topCandidate;
     }
     
     /**
@@ -531,50 +386,32 @@ class ChordDetector {
      * @private 
      */
     _calculateConfidence(chordName, similarity, chromagram) {
-        // Determine adaptive threshold based on chord type
-        let threshold = 0.5; // Default threshold
-        
-        // Special handling for specific chords that need different thresholds
-        if (chordName === 'G') {
-            threshold = 0.38; // More lenient for G
-        } else if (chordName === 'E') {
-            threshold = 0.40; // More lenient for E
-        } else if (chordName === 'Em') {
-            threshold = 0.42; // Stricter for Em to prevent false detections
-        } else if (chordName === 'D') {
-            threshold = 0.39; // More lenient for D
-        } else if (chordName === 'Fmaj7') {
-            threshold = 0.43; // Balanced for Fmaj7 with improved detection
-        } else if (chordName === 'C') {
-            threshold = 0.42; // Balanced for C
-        } else if (chordName.endsWith('7')) {
-            threshold = 0.45; // Seventh chords need stronger evidence
-        } else if (chordName.includes('sus')) {
-            threshold = 0.47; // Sus chords need stronger evidence
-        }
-        
         // Base confidence from similarity score
-        const confidenceBase = Math.max(0, (similarity - threshold) * 2.2); // Scale to 0-1 range
+        let confidence = similarity;
         
-        // Stability component 
-        const stabilityFactor = Math.min(1, this.chordStability / this.stabilityThreshold);
+        // Look at chord history for stability bonus
+        const historyBoost = this.chordHistory.filter(c => c.name === chordName).length / this.historyDepth;
+        confidence += historyBoost * 0.1;
         
-        // Integrate historical confidence (memory)
-        let historyFactor = 0;
-        if (this.chordConfidenceHistory[chordName] && this.chordConfidenceHistory[chordName].length > 0) {
-            // Average recent confidences for this chord
-            const recentConfidences = this.chordConfidenceHistory[chordName];
-            const avgConfidence = recentConfidences.reduce((sum, c) => sum + c, 0) / recentConfidences.length;
-            historyFactor = avgConfidence * 0.5; // Weight historical consistency
+        // Check if clear peaks match expected chord notes
+        const rootIndex = this._getNoteIndex(chordName.replace('m', '').replace('7', '').replace('maj', ''));
+        
+        // Find peaks in chromagram
+        const threshold = Math.max(...chromagram) * 0.7;
+        const peaks = chromagram.map((value, index) => value > threshold ? index : -1).filter(i => i !== -1);
+        
+        // Expected notes for this chord
+        const expectedNotes = this._getExpectedNotes(chordName);
+        
+        // Count how many peaks match expected notes
+        const matchingPeaks = peaks.filter(peak => expectedNotes.includes(peak)).length;
+        if (peaks.length > 0) {
+            // Add bonus for matching peaks
+            confidence += (matchingPeaks / peaks.length) * 0.1;
         }
         
-        // Weighted combination with most weight on current detection and stability
-        let confidence = confidenceBase * 0.45 + stabilityFactor * 0.45 + historyFactor * 0.1;
-        
-        // Clamp to valid range
-        confidence = Math.max(0, Math.min(1, confidence));
-        
-        return confidence;
+        // Cap confidence at 0.95 to account for uncertainty
+        return Math.min(0.95, confidence);
     }
     
     /**
@@ -584,22 +421,19 @@ class ChordDetector {
      * @private
      */
     _updateChordHistory(chordName, score) {
-        // Initialize if needed
-        if (!this.chordConfidenceHistory[chordName]) {
-            this.chordConfidenceHistory[chordName] = [];
+        if (score >= this.confidenceThreshold && chordName) {
+            // Add to history
+            this.chordHistory.push({
+                name: chordName,
+                score: score,
+                timestamp: Date.now()
+            });
+            
+            // Limit history size
+            if (this.chordHistory.length > this.historyDepth) {
+                this.chordHistory.shift();
+            }
         }
-        
-        // Add the current score
-        this.chordConfidenceHistory[chordName].push(score);
-        
-        // Limit history size
-        if (this.chordConfidenceHistory[chordName].length > this.detectionMemory) {
-            this.chordConfidenceHistory[chordName].shift();
-        }
-        
-        // Update chord usage statistics
-        this.chordCountThisSession[chordName] = (this.chordCountThisSession[chordName] || 0) + 1;
-        this.totalChordDetections++;
     }
     
     /**
@@ -610,26 +444,28 @@ class ChordDetector {
      * @private
      */
     _isValidChordTransition(fromChord, toChord) {
-        // If we don't have a previous chord, any chord is valid
-        if (!fromChord) return true;
+        // Create maps for common chord progressions
+        const commonProgressions = {
+            'C': ['F', 'G', 'Am', 'Em'],
+            'F': ['C', 'Bb', 'Dm', 'Gm'],
+            'G': ['C', 'Em', 'Am', 'D'],
+            'Am': ['F', 'C', 'G', 'Em'],
+            'Em': ['C', 'G', 'Am', 'D'],
+            'D': ['G', 'A', 'Bm', 'Em'],
+            'A': ['D', 'E', 'F#m', 'Bm'],
+            'E': ['A', 'B', 'C#m', 'F#m']
+        };
         
-        // Check if the chords are related in music theory
-        if (this.chordRelationships[fromChord] && 
-            this.chordRelationships[fromChord][toChord]) {
+        // Remove any 7, maj7, etc. for simplified progression checking
+        const fromBase = fromChord.replace(/7|maj7|sus[24]/, '');
+        const toBase = toChord.replace(/7|maj7|sus[24]/, '');
+        
+        // Check if this is a common progression
+        if (commonProgressions[fromBase] && commonProgressions[fromBase].includes(toBase)) {
             return true;
         }
         
-        // Check if it's the same chord with different extension/quality
-        // e.g., C to Cmaj7, Am to Am7, etc.
-        const fromRoot = fromChord.charAt(0);
-        const toRoot = toChord.charAt(0);
-        
-        if (fromRoot === toRoot) {
-            return true;
-        }
-        
-        // Otherwise consider it valid, but will need more evidence
-        return true;
+        return false;
     }
     
     /**
@@ -639,60 +475,86 @@ class ChordDetector {
      * @private
      */
     _getChordInfo(chordName) {
-        if (!chordName) {
-            return { displayName: '', type: '' };
-        }
-        
+        // Parse chord name to get display elements
         let displayName = chordName;
-        let type = 'Major';
+        let type = '';
         
-        // First check if we have template info
-        if (this.templates[chordName]) {
-            type = this.templates[chordName].type;
-            
-            // Format the display name based on type
-            if (type === 'Major') {
-                displayName = chordName; // Keep as is
-            } else if (type === 'Minor') {
-                displayName = chordName.replace('m', '');
-            } else if (type === 'Major 7') {
-                displayName = chordName.replace('maj7', '');
-            } else if (type === 'Dominant 7') {
-                displayName = chordName.replace('7', '');
-            } else if (type === 'Minor 7') {
-                displayName = chordName.replace('m7', '').replace('m', '');
-            } else if (type.startsWith('Sus')) {
-                displayName = chordName.replace('sus', '');
-            }
-            
-            return { displayName, type };
-        }
-        
-        // Fallback parsing logic
-        if (chordName.includes('maj7')) {
-            displayName = chordName.replace('maj7', '');
-            type = 'Major 7';
-        } else if (chordName.includes('m7')) {
-            displayName = chordName.replace('m7', '');
-            type = 'Minor 7';
-        } else if (chordName.endsWith('7')) {
-            displayName = chordName.replace('7', '');
-            type = 'Dominant 7';
-        } else if (chordName.includes('m')) {
-            displayName = chordName.replace('m', '');
+        // Handle minor chords
+        if (chordName.endsWith('m')) {
+            displayName = chordName.slice(0, -1);
             type = 'Minor';
-        } else if (chordName.includes('sus4')) {
-            displayName = chordName.replace('sus4', '');
-            type = 'Sus4';
-        } else if (chordName.includes('sus2')) {
-            displayName = chordName.replace('sus2', '');
+        }
+        // Handle seventh chords
+        else if (chordName.endsWith('maj7')) {
+            displayName = chordName.slice(0, -4);
+            type = 'Major 7';
+        }
+        else if (chordName.endsWith('7')) {
+            displayName = chordName.slice(0, -1);
+            type = 'Dominant 7';
+        }
+        // Handle sus chords
+        else if (chordName.endsWith('sus2')) {
+            displayName = chordName.slice(0, -4);
             type = 'Sus2';
-        } else {
-            displayName = chordName;
+        }
+        else if (chordName.endsWith('sus4')) {
+            displayName = chordName.slice(0, -4);
+            type = 'Sus4';
+        }
+        // Major is the default
+        else {
             type = 'Major';
         }
         
         return { displayName, type };
+    }
+    
+    /**
+     * Get the chromatic index of a note
+     * @param {string} noteName The note name
+     * @returns {number} The chromatic index (0-11)
+     * @private
+     */
+    _getNoteIndex(noteName) {
+        const noteMap = {
+            'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 
+            'E': 4, 'F': 5, 'F#': 6, 'G': 7, 
+            'G#': 8, 'A': 9, 'A#': 10, 'B': 11
+        };
+        
+        return noteMap[noteName] || 0;
+    }
+    
+    /**
+     * Get expected note indices for a chord
+     * @param {string} chordName The chord name
+     * @returns {Array} Array of expected note indices
+     * @private
+     */
+    _getExpectedNotes(chordName) {
+        const root = this._getNoteIndex(chordName.replace('m', '').replace('7', '').replace('maj', ''));
+        
+        // Define note patterns for different chord types
+        if (chordName.endsWith('m')) {
+            // Minor: root, minor third, fifth
+            return [root, (root + 3) % 12, (root + 7) % 12];
+        } else if (chordName.endsWith('maj7')) {
+            // Major seventh: root, major third, fifth, major seventh
+            return [root, (root + 4) % 12, (root + 7) % 12, (root + 11) % 12];
+        } else if (chordName.endsWith('7')) {
+            // Dominant seventh: root, major third, fifth, minor seventh
+            return [root, (root + 4) % 12, (root + 7) % 12, (root + 10) % 12];
+        } else if (chordName.endsWith('sus2')) {
+            // Sus2: root, major second, fifth
+            return [root, (root + 2) % 12, (root + 7) % 12];
+        } else if (chordName.endsWith('sus4')) {
+            // Sus4: root, perfect fourth, fifth
+            return [root, (root + 5) % 12, (root + 7) % 12];
+        } else {
+            // Major: root, major third, fifth
+            return [root, (root + 4) % 12, (root + 7) % 12];
+        }
     }
     
     /**
@@ -702,6 +564,10 @@ class ChordDetector {
      * @returns {number} Cosine similarity (-1 to 1)
      */
     cosineSimilarity(a, b) {
+        if (!a || !b || a.length !== b.length) {
+            return 0;
+        }
+        
         let dotProduct = 0;
         let normA = 0;
         let normB = 0;
@@ -712,8 +578,15 @@ class ChordDetector {
             normB += b[i] * b[i];
         }
         
-        if (normA === 0 || normB === 0) return 0;
+        normA = Math.sqrt(normA);
+        normB = Math.sqrt(normB);
         
-        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        // Handle zero vectors
+        if (normA === 0 || normB === 0) {
+            return 0;
+        }
+        
+        // Return cosine similarity
+        return dotProduct / (normA * normB);
     }
 }
