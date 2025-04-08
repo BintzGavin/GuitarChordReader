@@ -1,0 +1,51 @@
+Chromagram data: 
+(12) [0.1317893202830401, 0.0746600487725312, 0.07697979923994928, 0.0374629892427762, 0.07134199489689036, 0.13588456234364937, 0.06451711850473374, 0.10530149944304126, 0.06302721526358045, 0.10097775374511025, 0.07274509428734204, 0.06531260397735583]
+ Volume: 0.016814031362887324
+ChordDetector received: 
+Object {chromagram: Array(12), volume: 0.016814031362887324, isNewStrum: false}
+Chord detected: 
+Object {name: "F", type: "Major", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "F", type: "Major", confidence: 0.95, isStable: true}
+Chord display update called with: F Major (confidence: 0.95)
+New chord detected: F with confidence 0.95
+Cannot read properties of null (reading 'name')
+Updated chord name display to: F
+Updated chord type display to: Major
+Cannot read properties of null (reading 'name')
+Cannot read properties of null (reading 'name')
+Detected frequency: 86.1328125 Hz with energy: 0.22745098039215686
+Detected frequency: 96.8994140625 Hz with energy: 0.2549019607843137
+Detected frequency: 107.666015625 Hz with energy: 0.28627450980392155
+Detected frequency: 118.4326171875 Hz with energy: 0.3333333333333333
+Detected frequency: 129.19921875 Hz with energy: 0.4470588235294118
+Detected frequency: 139.9658203125 Hz with energy: 0.5254901960784314
+Detected frequency: 150.732421875 Hz with energy: 0.5294117647058824
+Detected frequency: 161.4990234375 Hz with energy: 0.44313725490196076
+Detected frequency: 172.265625 Hz with energy: 0.3843137254901961
+Detected frequency: 183.0322265625 Hz with energy: 0.3333333333333333
+Detected frequency: 193.798828125 Hz with energy: 0.2901960784313726
+Detected frequency: 204.5654296875 Hz with energy: 0.33725490196078434
+Detected frequency: 215.33203125 Hz with energy: 0.4235294117647059
+Detected frequency: 226.0986328125 Hz with energy: 0.45098039215686275
+Detected frequency: 236.865234375 Hz with energy: 0.4823529411764706
+Detected frequency: 247.6318359375 Hz with energy: 0.48627450980392156
+Detected frequency: 258.3984375 Hz with energy: 0.4588235294117647
+Detected frequency: 269.1650390625 Hz with energy: 0.4823529411764706
+Detected frequency: 279.931640625 Hz with energy: 0.4470588235294118
+Detected frequency: 290.6982421875 Hz with energy: 0.4
+Detected frequency: 301.46484375 Hz with energy: 0.3686274509803922
+Detected frequency: 312.2314453125 Hz with energy: 0.36470588235294116
+Detected frequency: 322.998046875 Hz with energy: 0.36470588235294116
+Detected frequency: 333.7646484375 Hz with energy: 0.4392156862745098
+Detected frequency: 344.53125 Hz with energy: 0.4470588235294118
+Detected frequency: 355.2978515625 Hz with energy: 0.42745098039215684
+Detected frequency: 366.064453125 Hz with energy: 0.4235294117647059
+Detected frequency: 376.8310546875 Hz with energy: 0.3686274509803922
+Detected frequency: 387.59765625 Hz with energy: 0.40784313725490196
+Detected frequency: 398.3642578125 Hz with energy: 0.40784313725490196
+Detected frequency: 409.130859375 Hz with energy: 0.41568627450980394
+Detected frequency: 419.8974609375 Hz with energy: 0.396078431372549
+Detected frequency: 430.6640625 Hz with energy: 0.36470588235294116
+Detected frequency: 441.4306640625 Hz with energy: 0.3333333333333333
+Detected frequency: 452.197265625 Hz with energy: 0.30980392156862746
