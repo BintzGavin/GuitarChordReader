@@ -67,13 +67,13 @@ class ChordDetector {
         // Add chord bias adjustment - we need to counter the over-detection of some chords
         this.chordBias = {
             // Reduce detection bias for these frequently over-detected chords
-            'C7': -0.1,
-            'Fmaj7': -0.2,
+            'C7': -0.15,
+            'Fmaj7': -0.15,  // Reduced penalty to allow better detection
             'F': -0.08,
+            'G': -0.1,  // Added penalty for G as it's being over-detected
             // Boost detection for these frequently under-detected chords
-            'Em': 0.12,
-            'Am': 0.12,
-            'G': 0.08,
+            'Em': 0.15,
+            'Am': 0.15,
             'E': 0.08,
             'D': 0.08
         };
@@ -240,24 +240,24 @@ class ChordDetector {
             }
         }
         
-        // Detailed handling for Fmaj7 vs C ambiguity
+        // Detailed handling for Fmaj7 chord
         if (chordName === 'Fmaj7') {
             // Fmaj7 needs strong F, A, C and E components with specific pattern
-            const hasStrongF = chromagram[5] > 0.7;  // F
-            const hasE = chromagram[4] > 0.5;  // E
-            const hasA = chromagram[9] > 0.4;  // A
-            const hasC = chromagram[0] > 0.3;  // C
+            const hasStrongF = chromagram[5] > 0.6;  // F (lowered from 0.7)
+            const hasE = chromagram[4] > 0.4;  // E (lowered from 0.5)
+            const hasA = chromagram[9] > 0.35;  // A (lowered from 0.4)
+            const hasC = chromagram[0] > 0.25;  // C (lowered from 0.3)
             
-            // If we have a very clear Fmaj7 pattern - but make it more strict
+            // If we have a very clear Fmaj7 pattern
             if (hasStrongF && hasE && hasA && hasC) {
-                similarity += 0.05; // Reduced from 0.08 to make it less sensitive
+                similarity += 0.1; // Increased from 0.05 to boost Fmaj7 detection
             } else if (hasStrongF && hasE) {
-                similarity += 0.02; // Reduced from 0.04
+                similarity += 0.05; // Increased from 0.02
             }
             
-            // Additional check to prevent false positives on Fmaj7
-            if (chromagram[5] < 0.55 || chromagram[4] < 0.4) {
-                similarity -= 0.2; // Increased penalty from 0.15
+            // Less strict penalty for Fmaj7
+            if (chromagram[5] < 0.4 || chromagram[4] < 0.3) {
+                similarity -= 0.15; // Reduced penalty and threshold
             }
         } else if (chordName === 'C7') {
             // Penalize C7 detection unless it's very clear
@@ -269,7 +269,7 @@ class ChordDetector {
             
             // If it's missing key components, penalize heavily
             if (!hasStrongC || !hasBb) {
-                similarity -= 0.15;
+                similarity -= 0.2; // Increased penalty
             }
         } else if (chordName === 'C') {
             // C needs strong C, E, G components
@@ -295,8 +295,11 @@ class ChordDetector {
             const hasD = chromagram[2] > 0.35;  // D (lowered from 0.4)
             
             if (hasStrongG) {
-                similarity += 0.09; // Increased from 0.07
-                if (hasB && hasD) similarity += 0.07; // Increased from 0.04 for all three notes
+                similarity += 0.07; // Reduced from 0.09 to prevent over-detection
+                if (hasB && hasD) similarity += 0.05; // Reduced from 0.07
+            } else {
+                // Penalize G detection when G isn't strong enough
+                similarity -= 0.08;
             }
         } else if (chordName === 'D') {
             // D needs strong D, F#, A components
@@ -320,8 +323,6 @@ class ChordDetector {
                 if (hasE) similarity += 0.06; // Increased from 0.05
             }
         }
-        
-        // Add other chord-specific rules here...
         
         return similarity;
     }
@@ -410,10 +411,10 @@ class ChordDetector {
         if ((topCandidate.name === 'F' && secondCandidate.name === 'Fmaj7') ||
             (topCandidate.name === 'Fmaj7' && secondCandidate.name === 'F')) {
             // Check if E note is strong, which would indicate Fmaj7
-            if (chromagram[4] > 0.5) {
-                return { name: 'Fmaj7', similarity: secondCandidate.similarity };
+            if (chromagram[4] > 0.4) {  // Lowered from 0.5
+                return { name: 'Fmaj7', similarity: Math.max(topCandidate.similarity, secondCandidate.similarity) };
             } else {
-                return { name: 'F', similarity: secondCandidate.similarity };
+                return { name: 'F', similarity: Math.max(topCandidate.similarity, secondCandidate.similarity) };
             }
         }
         
@@ -422,9 +423,27 @@ class ChordDetector {
             (topCandidate.name === 'C' && secondCandidate.name === 'C7')) {
             // Check for strong Bb which would indicate C7
             if (chromagram[10] > 0.45) {
-                return { name: 'C7', similarity: secondCandidate.similarity };
+                return { name: 'C7', similarity: Math.max(topCandidate.similarity, secondCandidate.similarity) };
             } else {
-                return { name: 'C', similarity: secondCandidate.similarity };
+                return { name: 'C', similarity: Math.max(topCandidate.similarity, secondCandidate.similarity) };
+            }
+        }
+        
+        // Em vs G ambiguity - check E and B vs G and D
+        if ((topCandidate.name === 'Em' && secondCandidate.name === 'G') ||
+            (topCandidate.name === 'G' && secondCandidate.name === 'Em')) {
+            // For Em we need strong E and B, with some G
+            const eStrength = chromagram[4]; // E
+            const bStrength = chromagram[11]; // B
+            // For G we need strong G and D, with some B
+            const gStrength = chromagram[7]; // G
+            const dStrength = chromagram[2]; // D
+            
+            if ((eStrength > 0.45 && bStrength > 0.25) && 
+                !(gStrength > 0.6 && dStrength > 0.35)) {
+                return { name: 'Em', similarity: Math.max(topCandidate.similarity, secondCandidate.similarity) };
+            } else if (gStrength > 0.6 && dStrength > 0.35) {
+                return { name: 'G', similarity: Math.max(topCandidate.similarity, secondCandidate.similarity) };
             }
         }
         
@@ -502,10 +521,11 @@ class ChordDetector {
         // Create maps for common chord progressions
         const commonProgressions = {
             'C': ['F', 'G', 'Am', 'Em'],
-            'F': ['C', 'Bb', 'Dm', 'Gm'],
+            'F': ['C', 'Bb', 'Dm', 'Gm', 'Fmaj7'], // Added Fmaj7 as a valid progression from F
+            'Fmaj7': ['C', 'Dm', 'Am', 'F'], // Added common progressions from Fmaj7
             'G': ['C', 'Em', 'Am', 'D'],
-            'Am': ['F', 'C', 'G', 'Em'],
-            'Em': ['C', 'G', 'Am', 'D'],
+            'Am': ['F', 'C', 'G', 'Em', 'Fmaj7'], // Added Fmaj7 as a valid progression from Am
+            'Em': ['C', 'G', 'Am', 'D', 'Fmaj7'], // Added Fmaj7 as a valid progression from Em
             'D': ['G', 'A', 'Bm', 'Em'],
             'A': ['D', 'E', 'F#m', 'Bm'],
             'E': ['A', 'B', 'C#m', 'F#m']
@@ -515,8 +535,12 @@ class ChordDetector {
         const fromBase = fromChord.replace(/7|maj7|sus[24]/, '');
         const toBase = toChord.replace(/7|maj7|sus[24]/, '');
         
+        // Special case for Fmaj7 which should be kept as is for progressions
+        const actualFromChord = fromChord === 'Fmaj7' ? 'Fmaj7' : fromBase;
+        const actualToChord = toChord === 'Fmaj7' ? 'Fmaj7' : toBase;
+        
         // Check if this is a common progression
-        if (commonProgressions[fromBase] && commonProgressions[fromBase].includes(toBase)) {
+        if (commonProgressions[actualFromChord] && commonProgressions[actualFromChord].includes(actualToChord)) {
             return true;
         }
         

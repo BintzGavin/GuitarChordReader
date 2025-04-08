@@ -1,0 +1,227 @@
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord display update called with: G Major (confidence: 0.95)
+New chord detected: G with confidence 0.95
+Updated chord name display to: G
+Updated chord type display to: Major
+Normalized chromagram with sum: 105.0229189561428 
+(12) [0.024769473695303353, 0.02252344079296725, 0.12585272937340017, 0.07568259028677424, 0.18761107029614324, 0.06661171001542733, 0.12335240192382808, 0.0898836203861781, 0.07827171291696079, 0.06692908662474166, 0.05497241265708323, 0.16035936600873912]
+Final smoothed chromagram: 
+(12) [0.024769473695303353, 0.02252344079296725, 0.12585272937340017, 0.07568259028677424, 0.18761107029614324, 0.06661171001542733, 0.12335240192382808, 0.0898836203861781, 0.07827171291696079, 0.06692908662474166, 0.05497241265708323, 0.16035936600873912]
+ChordDetector received: 
+Object {chromagram: Array(12), volume: 0.042729775383696655, isNewStrum: true}
+Chord detected: 
+Object {name: "E", type: "Minor", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "E", type: "Minor", confidence: 0.95, isStable: true}
+Chord display update called with: E Minor (confidence: 0.95)
+New chord detected: E with confidence 0.95
+Updated chord name display to: E
+Updated chord type display to: Minor
+Detected frequency: 64.599609375 Hz with energy: 0.592156862745098
+Detected frequency: 69.98291015625 Hz with energy: 0.3764705882352941
+Detected frequency: 75.3662109375 Hz with energy: 0.6039215686274509
+Detected frequency: 80.74951171875 Hz with energy: 0.6509803921568628
+Detected frequency: 86.1328125 Hz with energy: 0.5764705882352941
+Detected frequency: 91.51611328125 Hz with energy: 0.4117647058823529
+Detected frequency: 96.8994140625 Hz with energy: 0.45098039215686275
+Detected frequency: 102.28271484375 Hz with energy: 0.4
+Detected frequency: 107.666015625 Hz with energy: 0.20392156862745098
+Detected frequency: 113.04931640625 Hz with energy: 0.4
+Detected frequency: 118.4326171875 Hz with energy: 0.5254901960784314
+Detected frequency: 123.81591796875 Hz with energy: 0.5215686274509804
+Detected frequency: 129.19921875 Hz with energy: 0.3803921568627451
+Detected frequency: 134.58251953125 Hz with energy: 0.1607843137254902
+Detected frequency: 139.9658203125 Hz with energy: 0.13333333333333333
+Detected frequency: 145.34912109375 Hz with energy: 0.12941176470588237
+Detected frequency: 150.732421875 Hz with energy: 0.33725490196078434
+Detected frequency: 156.11572265625 Hz with energy: 0.5411764705882353
+Detected frequency: 161.4990234375 Hz with energy: 0.6078431372549019
+Detected frequency: 166.88232421875 Hz with energy: 0.5686274509803921
+Detected frequency: 172.265625 Hz with energy: 0.42745098039215684
+Detected frequency: 177.64892578125 Hz with energy: 0.33725490196078434
+Detected frequency: 183.0322265625 Hz with energy: 0.45098039215686275
+Detected frequency: 188.41552734375 Hz with energy: 0.4588235294117647
+Detected frequency: 193.798828125 Hz with energy: 0.4666666666666667
+Detected frequency: 199.18212890625 Hz with energy: 0.4235294117647059
+Detected frequency: 204.5654296875 Hz with energy: 0.20784313725490197
+Detected frequency: 215.33203125 Hz with energy: 0.06666666666666667
+Detected frequency: 220.71533203125 Hz with energy: 0.09803921568627451
+Detected frequency: 226.0986328125 Hz with energy: 0.06274509803921569
+Detected frequency: 231.48193359375 Hz with energy: 0.18823529411764706
+Detected frequency: 236.865234375 Hz with energy: 0.5058823529411764
+Detected frequency: 242.24853515625 Hz with energy: 0.611764705882353
+Detected frequency: 247.6318359375 Hz with energy: 0.5843137254901961
+Detected frequency: 253.01513671875 Hz with energy: 0.42745098039215684
+Detected frequency: 258.3984375 Hz with energy: 0.12549019607843137
+Detected frequency: 263.78173828125 Hz with energy: 0.08627450980392157
+Detected frequency: 269.1650390625 Hz with energy: 0.11372549019607843
+Detected frequency: 274.54833984375 Hz with energy: 0.10196078431372549
+Detected frequency: 279.931640625 Hz with energy: 0.09411764705882353
+Detected frequency: 285.31494140625 Hz with energy: 0.3803921568627451
+Detected frequency: 290.6982421875 Hz with energy: 0.4980392156862745
+Detected frequency: 296.08154296875 Hz with energy: 0.48627450980392156
+Detected frequency: 301.46484375 Hz with energy: 0.36470588235294116
+Detected frequency: 306.84814453125 Hz with energy: 0.36470588235294116
+Detected frequency: 312.2314453125 Hz with energy: 0.3568627450980392
+Detected frequency: 317.61474609375 Hz with energy: 0.2627450980392157
+Detected frequency: 322.998046875 Hz with energy: 0.396078431372549
+Detected frequency: 328.38134765625 Hz with energy: 0.47843137254901963
+Detected frequency: 333.7646484375 Hz with energy: 0.4470588235294118
+Detected frequency: 339.14794921875 Hz with energy: 0.2823529411764706
+Detected frequency: 344.53125 Hz with energy: 0.1411764705882353
+Detected frequency: 349.91455078125 Hz with energy: 0.0784313725490196
+Detected frequency: 355.2978515625 Hz with energy: 0.10588235294117647
+Detected frequency: 360.68115234375 Hz with energy: 0.3137254901960784
+Detected frequency: 366.064453125 Hz with energy: 0.3843137254901961
+Detected frequency: 371.44775390625 Hz with energy: 0.35294117647058826
+Detected frequency: 376.8310546875 Hz with energy: 0.21568627450980393
+Detected frequency: 382.21435546875 Hz with energy: 0.0784313725490196
+Detected frequency: 387.59765625 Hz with energy: 0.2235294117647059
+Detected frequency: 392.98095703125 Hz with energy: 0.22745098039215686
+Detected frequency: 398.3642578125 Hz with energy: 0.09803921568627451
+Detected frequency: 403.74755859375 Hz with energy: 0.1803921568627451
+Detected frequency: 409.130859375 Hz with energy: 0.3215686274509804
+Detected frequency: 414.51416015625 Hz with energy: 0.34901960784313724
+Detected frequency: 419.8974609375 Hz with energy: 0.25882352941176473
+Detected frequency: 425.28076171875 Hz with energy: 0.13725490196078433
+Detected frequency: 430.6640625 Hz with energy: 0.20784313725490197
+Detected frequency: 436.04736328125 Hz with energy: 0.19215686274509805
+Detected frequency: 441.4306640625 Hz with energy: 0.06666666666666667
+Detected frequency: 479.11376953125 Hz with energy: 0.17647058823529413
+Detected frequency: 484.4970703125 Hz with energy: 0.30980392156862746
+Detected frequency: 489.88037109375 Hz with energy: 0.3254901960784314
+Detected frequency: 495.263671875 Hz with energy: 0.34901960784313724
+Detected frequency: 500.64697265625 Hz with energy: 0.2823529411764706
+Detected frequency: 506.0302734375 Hz with energy: 0.07058823529411765
+Detected frequency: 543.71337890625 Hz with energy: 0.09803921568627451
+Detected frequency: 549.0966796875 Hz with energy: 0.12941176470588237
+Detected frequency: 554.47998046875 Hz with energy: 0.17254901960784313
+Detected frequency: 559.86328125 Hz with energy: 0.1568627450980392
+Detected frequency: 565.24658203125 Hz with energy: 0.06274509803921569
+Detected frequency: 570.6298828125 Hz with energy: 0.12941176470588237
+Detected frequency: 576.01318359375 Hz with energy: 0.24705882352941178
+Detected frequency: 581.396484375 Hz with energy: 0.25098039215686274
+Detected frequency: 586.77978515625 Hz with energy: 0.22745098039215686
+Detected frequency: 592.1630859375 Hz with energy: 0.13725490196078433
+Detected frequency: 602.9296875 Hz with energy: 0.14901960784313725
+Detected frequency: 608.31298828125 Hz with energy: 0.27450980392156865
+Detected frequency: 613.6962890625 Hz with energy: 0.24705882352941178
+Detected frequency: 619.07958984375 Hz with energy: 0.050980392156862744
+Detected frequency: 651.37939453125 Hz with energy: 0.16470588235294117
+Detected frequency: 656.7626953125 Hz with energy: 0.2980392156862745
+Detected frequency: 662.14599609375 Hz with energy: 0.2980392156862745
+Detected frequency: 667.529296875 Hz with energy: 0.1568627450980392
+Detected frequency: 678.2958984375 Hz with energy: 0.1450980392156863
+Detected frequency: 683.67919921875 Hz with energy: 0.18823529411764706
+Detected frequency: 689.0625 Hz with energy: 0.11372549019607843
+Detected frequency: 726.74560546875 Hz with energy: 0.06666666666666667
+Detected frequency: 732.12890625 Hz with energy: 0.1568627450980392
+Detected frequency: 737.51220703125 Hz with energy: 0.15294117647058825
+Detected frequency: 742.8955078125 Hz with energy: 0.16470588235294117
+Detected frequency: 748.27880859375 Hz with energy: 0.15294117647058825
+Detected frequency: 775.1953125 Hz with energy: 0.2235294117647059
+Detected frequency: 780.57861328125 Hz with energy: 0.3058823529411765
+Detected frequency: 785.9619140625 Hz with energy: 0.2549019607843137
+Detected frequency: 791.34521484375 Hz with energy: 0.06666666666666667
+Detected frequency: 812.87841796875 Hz with energy: 0.12156862745098039
+Detected frequency: 818.26171875 Hz with energy: 0.33725490196078434
+Detected frequency: 823.64501953125 Hz with energy: 0.40784313725490196
+Detected frequency: 829.0283203125 Hz with energy: 0.35294117647058826
+Detected frequency: 834.41162109375 Hz with energy: 0.1411764705882353
+Detected frequency: 872.0947265625 Hz with energy: 0.09019607843137255
+Detected frequency: 877.47802734375 Hz with energy: 0.19607843137254902
+Detected frequency: 882.861328125 Hz with energy: 0.17254901960784313
+Detected frequency: 909.77783203125 Hz with energy: 0.058823529411764705
+Detected frequency: 915.1611328125 Hz with energy: 0.054901960784313725
+Detected frequency: 968.994140625 Hz with energy: 0.07450980392156863
+Detected frequency: 974.37744140625 Hz with energy: 0.23137254901960785
+Detected frequency: 979.7607421875 Hz with energy: 0.2549019607843137
+Detected frequency: 985.14404296875 Hz with energy: 0.24705882352941178
+Detected frequency: 990.52734375 Hz with energy: 0.23921568627450981
+Detected frequency: 995.91064453125 Hz with energy: 0.13333333333333333
+Detected frequency: 1152.0263671875 Hz with energy: 0.07450980392156863
+Detected frequency: 1157.40966796875 Hz with energy: 0.058823529411764705
+Detected frequency: 1318.90869140625 Hz with energy: 0.09803921568627451
+Detected frequency: 1324.2919921875 Hz with energy: 0.050980392156862744
+Detected frequency: 1464.2578125 Hz with energy: 0.058823529411764705
+Detected frequency: 1469.64111328125 Hz with energy: 0.10980392156862745
+Detected frequency: 1475.0244140625 Hz with energy: 0.054901960784313725
+Detected frequency: 1480.40771484375 Hz with energy: 0.12549019607843137
+Detected frequency: 1485.791015625 Hz with energy: 0.15294117647058825
+Detected frequency: 1491.17431640625 Hz with energy: 0.058823529411764705
+Normalized chromagram with sum: 100.21477662161674 
+(12) [0.025342728972008465, 0.02721942517432578, 0.12766244992718406, 0.07627586466850098, 0.19564060680406964, 0.06322903355286145, 0.12122366894710886, 0.08790222143287993, 0.0844443227399075, 0.05802938267889801, 0.04790066640165149, 0.1628082959117767]
+Final smoothed chromagram: 
+(12) [0.025342728972008465, 0.02721942517432578, 0.12766244992718406, 0.07627586466850098, 0.19564060680406964, 0.06322903355286145, 0.12122366894710886, 0.08790222143287993, 0.0844443227399075, 0.05802938267889801, 0.04790066640165149, 0.1628082959117767]
+Chromagram data: 
+(12) [0.025342728972008465, 0.02721942517432578, 0.12766244992718406, 0.07627586466850098, 0.19564060680406964, 0.06322903355286145, 0.12122366894710886, 0.08790222143287993, 0.0844443227399075, 0.05802938267889801, 0.04790066640165149, 0.1628082959117767]
+ Volume: 0.03548026574065092
+ChordDetector received: 
+Object {chromagram: Array(12), volume: 0.03548026574065092, isNewStrum: true}
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord display update called with: G Major (confidence: 0.95)
+New chord detected: G with confidence 0.95
+Updated chord name display to: G
+Updated chord type display to: Major
+Normalized chromagram with sum: 92.96954382143323 
+(12) [0.024744282506802134, 0.012537105906806765, 0.1326657281052038, 0.07968727092372745, 0.21056780768173886, 0.06867372547827316, 0.11559793673209698, 0.08959478146861395, 0.08638193611552897, 0.04984097078230148, 0.04767309884115015, 0.16112549692609504]
+Final smoothed chromagram: 
+(12) [0.024744282506802134, 0.012537105906806765, 0.1326657281052038, 0.07968727092372745, 0.21056780768173886, 0.06867372547827316, 0.11559793673209698, 0.08959478146861395, 0.08638193611552897, 0.04984097078230148, 0.04767309884115015, 0.16112549692609504]
+ChordDetector received: 
+Object {chromagram: Array(12), volume: 0.04099139609753666, isNewStrum: true}
+Chord detected: 
+Object {name: "E", type: "Minor", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "E", type: "Minor", confidence: 0.95, isStable: true}
+Chord display update called with: E Minor (confidence: 0.95)
+New chord detected: E with confidence 0.95
+Updated chord name display to: E
+Updated chord type display to: Minor
+Normalized chromagram with sum: 90.62429146727808 
+(12) [0.026461212474220234, 0.011231142515437829, 0.13244491329190414, 0.08177813964105478, 0.20720456436005116, 0.06281144974943295, 0.099975530539565, 0.08979798765756171, 0.08533464943793195, 0.049075415144338164, 0.052832488972416505, 0.16226390971918228]
+Final smoothed chromagram: 
+(12) [0.026461212474220234, 0.011231142515437829, 0.13244491329190414, 0.08177813964105478, 0.20720456436005116, 0.06281144974943295, 0.099975530539565, 0.08979798765756171, 0.08533464943793195, 0.049075415144338164, 0.052832488972416505, 0.16226390971918228]
+ChordDetector received: 
+Object {chromagram: Array(12), volume: 0.036730053023601814, isNewStrum: true}
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord display update called with: G Major (confidence: 0.95)
+New chord detected: G with confidence 0.95
+Updated chord name display to: G
+Updated chord type display to: Major
+Normalized chromagram with sum: 86.16606307074011 
+(12) [0.029331628173897385, 0.013803337483772523, 0.1285704956613401, 0.07877195825287041, 0.21065293124439893, 0.06906182164104899, 0.09453683067696766, 0.09198324170353454, 0.08107662053209777, 0.05020521940079905, 0.054230389519860256, 0.15895447994517362]
+Final smoothed chromagram: 
+(12) [0.029331628173897385, 0.013803337483772523, 0.1285704956613401, 0.07877195825287041, 0.21065293124439893, 0.06906182164104899, 0.09453683067696766, 0.09198324170353454, 0.08107662053209777, 0.05020521940079905, 0.054230389519860256, 0.15895447994517362]
+ChordDetector received: 
+Object {chromagram: Array(12), volume: 0.03902003113376155, isNewStrum: true}
+Chord detected: 
+Object {name: "E", type: "Minor", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "E", type: "Minor", confidence: 0.95, isStable: true}
+Chord display update called with: E Minor (confidence: 0.95)
+New chord detected: E with confidence 0.95
+Updated chord name display to: E
+Updated chord type display to: Minor
+Normalized chromagram with sum: 80.16107432960716 
+(12) [0.023117021249461227, 0.016175382522543285, 0.1331346341078406, 0.08881709986121722, 0.19946929196484595, 0.06956573779043311, 0.094694080662414, 0.09412115078944937, 0.0830285175331889, 0.03507248335709926, 0.059249601282729, 0.16343671468468876]
+Final smoothed chromagram: 
+(12) [0.023117021249461227, 0.016175382522543285, 0.1331346341078406, 0.08881709986121722, 0.19946929196484595, 0.06956573779043311, 0.094694080662414, 0.09412115078944937, 0.0830285175331889, 0.03507248335709926, 0.059249601282729, 0.16343671468468876]
+ChordDetector received: 
+Object {chromagram: Array(12), volume: 0.03450223440895479, isNewStrum: true}
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord detected: 
+Object {name: "G", type: "Major", confidence: 0.95, isStable: true}
+Chord display update called with: G Major (confidence: 0.95)
+New chord detected: G with confidence 0.95
+Updated chord name display to: G
+Updated chord type display to: Major
