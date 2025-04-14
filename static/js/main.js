@@ -44,18 +44,23 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update volume meter
         updateVolumeMeter(results.volume);
         
-        // Log debug information
-        console.log("Volume:", results.volume.toFixed(4), 
-                    "Chord:", results.chord.name, 
-                    "Type:", results.chord.type,
-                    "Confidence:", results.chord.confidence.toFixed(4),
-                    "Stable:", results.chord.isStable);
+        // Only process audio above the minimum volume threshold
+        const MIN_VOLUME_THRESHOLD = 0.02;
         
-        // Update chord display if a chord is detected
-        if (results.chord && results.chord.name) {
-            updateChordDisplay(results.chord);
+        if (results.volume >= MIN_VOLUME_THRESHOLD) {
+            // Log debug information only for audio above threshold
+            console.log("Volume:", results.volume.toFixed(4), 
+                        "Chord:", results.chord.name, 
+                        "Type:", results.chord.type,
+                        "Confidence:", results.chord.confidence.toFixed(4),
+                        "Stable:", results.chord.isStable);
+            
+            // Update chord display if a chord is detected
+            if (results.chord && results.chord.name) {
+                updateChordDisplay(results.chord);
+            }
         } else {
-            // If no chord detected, show waiting message
+            // For low volume, just clear the chord display after a delay
             if (lastDetectedChord) {
                 chordName.textContent = '...';
                 chordType.textContent = 'Listening...';

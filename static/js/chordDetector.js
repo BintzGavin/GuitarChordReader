@@ -38,17 +38,18 @@ class ChordDetector {
         };
         
         // Common acoustic guitar chord voicings - adjusted templates based on typical harmonic content
+        // Note: We've made C major chord less sensitive by reducing its template values
         this.acousticGuitarTemplates = {
             // Open chord shapes on acoustic guitar often have certain notes emphasized
-            'C': { type: 'Major', template: [3, 0, 0, 0, 2, 0, 0, 3, 0, 0, 0, 1] }, // E and G emphasized, some C overtone
+            'C': { type: 'Major', template: [2, 0, 0, 0, 1, 0, 0, 1.5, 0, 0, 0, 0.5] }, // Reduced sensitivity to C major
             'D': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 2, 0, 0, 3, 0, 0] }, // A and F# emphasized
             'E': { type: 'Major', template: [0, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 3] }, // E, B emphasized
-            'G': { type: 'Major', template: [0, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 1] }, // G, B emphasized, some D
-            'A': { type: 'Major', template: [0, 1, 0, 0, 3, 0, 0, 0, 0, 2, 0, 0] }, // E, A emphasized
+            'G': { type: 'Major', template: [0, 0, 2.5, 0, 0, 0, 0, 3, 0, 0, 0, 1] }, // G, B emphasized, some D
+            'A': { type: 'Major', template: [0, 1, 0, 0, 3, 0, 0, 0, 0, 2.5, 0, 0] }, // E, A emphasized
             
             'Em': { type: 'Minor', template: [0, 0, 0, 0, 3, 0, 0, 2, 0, 0, 0, 1] }, // E emphasized, G and B
-            'Am': { type: 'Minor', template: [2, 0, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0] }, // A, E emphasized, some C
-            'Dm': { type: 'Minor', template: [0, 0, 2, 0, 0, 3, 0, 0, 0, 1, 0, 0] }, // D, F emphasized
+            'Am': { type: 'Minor', template: [2, 0, 0, 0, 3, 0, 0, 0, 0, 1.5, 0, 0] }, // A, E emphasized, some C
+            'Dm': { type: 'Minor', template: [0, 0, 2.5, 0, 0, 3, 0, 0, 0, 1, 0, 0] }, // D, F emphasized
         };
         
         // Combine templates, with acoustic templates taking precedence
@@ -60,9 +61,9 @@ class ChordDetector {
         this.noChordFrames = 0;
         
         // Settings
-        this.minVolumeThreshold = 0.01; // Lower threshold to be more sensitive
-        this.stabilityThreshold = 2; // Reduced for faster response
-        this.noiseFloor = 0.2; // Lower threshold to capture more notes
+        this.minVolumeThreshold = 0.02; // Increased threshold to match main.js
+        this.stabilityThreshold = 3; // Increased to make chord detection more stable
+        this.noiseFloor = 0.25; // Increased threshold to filter out more noise
     }
 
     /**
@@ -110,6 +111,8 @@ class ChordDetector {
         // Find best matching chord
         let bestMatchScore = -Infinity;
         let bestMatchChord = '';
+        let secondBestScore = -Infinity;
+        let secondBestChord = '';
         
         // Try each chord template
         for (const [chordName, chordInfo] of Object.entries(this.templates)) {
@@ -118,10 +121,22 @@ class ChordDetector {
             // Calculate cosine similarity between template and chromagram
             const similarity = this.cosineSimilarity(cleanedChroma, template);
             
+            // Special handling for C major - require higher confidence
+            const isC = chordName === 'C' && !chordName.includes('m');
+            const adjustedSimilarity = isC ? similarity * 0.85 : similarity;
+            
             // Find the best match
-            if (similarity > bestMatchScore) {
-                bestMatchScore = similarity;
+            if (adjustedSimilarity > bestMatchScore) {
+                // Move current best to second best
+                secondBestScore = bestMatchScore;
+                secondBestChord = bestMatchChord;
+                
+                // Set new best
+                bestMatchScore = adjustedSimilarity;
                 bestMatchChord = chordName;
+            } else if (adjustedSimilarity > secondBestScore) {
+                secondBestScore = adjustedSimilarity;
+                secondBestChord = chordName;
             }
         }
         
@@ -134,10 +149,14 @@ class ChordDetector {
         }
         
         // Calculate confidence based on similarity score and stability
-        // Be more lenient with the base similarity threshold (0.5 instead of 0.6)
         const confidenceBase = Math.max(0, (bestMatchScore - 0.5) * 2.0); // Scale similarity to 0-1 range
         const stabilityFactor = Math.min(1, this.chordStability / this.stabilityThreshold);
-        const confidence = confidenceBase * 0.6 + stabilityFactor * 0.4; // Give more weight to stability
+        
+        // Add margin check - if the second best is very close, reduce confidence
+        const margin = bestMatchScore - secondBestScore;
+        const marginFactor = Math.min(1, margin * 5); // Amplify small differences
+        
+        const confidence = confidenceBase * 0.5 + stabilityFactor * 0.3 + marginFactor * 0.2;
         
         return {
             name: bestMatchChord.replace('m', ''), // Remove 'm' suffix for display
