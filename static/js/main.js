@@ -2,379 +2,213 @@
  * Main application script
  * Handles UI updates and audio processor initialization
  */
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize variables and components
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM elements
     const startButton = document.getElementById('start-button');
     const stopButton = document.getElementById('stop-button');
+    const chordName = document.getElementById('chord-name');
+    const chordType = document.getElementById('chord-type');
+    const confidenceIndicator = document.getElementById('confidence-indicator');
+    const volumeMeter = document.getElementById('volume-meter');
     const statusMessage = document.getElementById('status-message');
-    let chordName = document.getElementById('chord-name');
-    let chordType = document.getElementById('chord-type');
-    let confidenceIndicator = document.getElementById('confidence-indicator');
-    let volumeMeter = document.getElementById('volume-meter');
+    const chordHistory = document.getElementById('chord-history');
     
-    // Audio processing components
-    let audioProcessor = null;
+    // Create audio processor
+    const audioProcessor = new AudioProcessor();
     
-    // Chord history system
-    let recentChords = [];
-    let maxRecentChords = 10;
-    let pendingHistoryChord = null;
-    let chordHistoryStability = 0;
-    let lastDetectedChord = null;
-    let lastHistoryAddTime = 0;
+    // Track the last few detected chords
+    const recentChords = [];
+    const maxHistoryLength = 6; // Maximum number of chords to show in history
+    let lastDetectedChord = '';
     
-    // Audio processing parameters
-    let minVolumeForChord = 0.01; // Extremely low threshold to detect even quieter playing
-    
-    // Initialize the audio processor
+    // Initialize the application
     async function initialize() {
-        try {
-            console.log("Initializing audio processor...");
-            audioProcessor = new AudioProcessor();
-            
-            // Initialize audio context and set up analyzer nodes
-            const initialized = await audioProcessor.initialize();
-            
-            if (!initialized) {
-                updateStatus('Error initializing audio system. Please refresh and try again.');
-                return false;
-            }
-            
-            // Set callback for audio processing results
-            audioProcessor.setAudioProcessedCallback(handleAudioProcessed);
-            
-            return true;
-        } catch (error) {
-            console.error("Error during initialization:", error);
-            updateStatus('Failed to initialize audio system: ' + error.message);
+        updateStatus('Initializing audio system...');
+        
+        const success = await audioProcessor.initialize();
+        
+        if (!success) {
+            updateStatus('Failed to initialize audio. Please check microphone permissions.');
             return false;
         }
+        
+        // Set up callback for audio processing results
+        audioProcessor.setAudioProcessedCallback(handleAudioProcessed);
+        
+        updateStatus('Ready! Click "Start Listening" to begin chord detection.');
+        return true;
     }
     
     // Handle audio processing results
     function handleAudioProcessed(results) {
-        try {
-            // Safely access properties with null checks
-            if (!results) {
-                console.error("Received null results in handleAudioProcessed");
-                return;
+        // Update volume meter
+        updateVolumeMeter(results.volume);
+        
+        // Update chord display if a chord is detected
+        if (results.chord && results.chord.name) {
+            updateChordDisplay(results.chord);
+        } else {
+            // If no chord detected, show waiting message
+            if (lastDetectedChord) {
+                chordName.textContent = '...';
+                chordType.textContent = 'Listening...';
+                confidenceIndicator.className = 'confidence-indicator';
+                lastDetectedChord = '';
             }
-            
-            // Update the volume meter
-            if (typeof results.volume === 'number') {
-                updateVolumeMeter(results.volume);
-            }
-            
-            // Ensure chord display is updated even for minor chords
-            // Safely check for chord existence and properties
-            if (results.chord) {
-                requestAnimationFrame(() => {
-                    // Get fresh references to DOM elements
-                    const nameElement = document.getElementById("chord-name");
-                    const typeElement = document.getElementById("chord-type");
-                    
-                    if (nameElement && typeElement) {
-                        nameElement.textContent = results.chord.name || "...";
-                        typeElement.textContent = results.chord.type || "Listening...";
-                    }
-                });
-            
-                // Detect chords when volume is above threshold
-                if (results.chromagram && results.volume >= minVolumeForChord) {
-                    // Check if onset (new strum) was detected
-                    const wasNewStrum = results.onsetDetected || false;
-                    
-                    // Get the chord from detector
-                    updateChordDisplay(results.chord);
-                }
-            }
-        } catch (error) {
-            console.error("Error processing audio results:", error);
         }
     }
     
     // Update the volume meter
     function updateVolumeMeter(volume) {
-        if (!volumeMeter) {
-            console.warn("Volume meter element not found");
-            volumeMeter = document.getElementById('volume-meter');
-            if (!volumeMeter) return;
-        }
+        // Convert volume (0-1) to percentage
+        const percentage = Math.min(100, Math.round(volume * 100));
+        volumeMeter.style.width = `${percentage}%`;
         
-        // Convert to percentage and set the width
-        const percentage = Math.min(100, Math.max(0, volume * 100 * 5)); // Scale up for better visibility
-        volumeMeter.style.width = percentage + '%';
+        // Add color classes based on volume
+        if (percentage > 80) {
+            volumeMeter.classList.add('bg-danger');
+            volumeMeter.classList.remove('bg-warning', 'bg-success');
+        } else if (percentage > 40) {
+            volumeMeter.classList.add('bg-warning');
+            volumeMeter.classList.remove('bg-danger', 'bg-success');
+        } else {
+            volumeMeter.classList.add('bg-success');
+            volumeMeter.classList.remove('bg-danger', 'bg-warning');
+        }
     }
     
+    // Update the chord display
     function updateChordDisplay(chord) {
-        // Bail out early if chord object is invalid
-        if (!chord || typeof chord !== 'object') {
-            console.error("Invalid chord object:", chord);
-            return;
-        }
-        
-        console.log(`Chord display update called with: ${chord.name || 'Unknown'} ${chord.type || 'Unknown'} (confidence: ${chord.confidence ? chord.confidence.toFixed(2) : 'unknown'})`);
-        
-        // Always try to get fresh references to DOM elements in case they were lost
-        if (!chordName) chordName = document.getElementById("chord-name");
-        if (!chordType) chordType = document.getElementById("chord-type");
-        if (!confidenceIndicator) confidenceIndicator = document.getElementById("confidence-indicator");
-        
-        // Ensure all DOM elements are available
-        if (!chordName || !chordType || !confidenceIndicator) {
-            console.error("Missing DOM elements for chord display");
-            return;
-        }
-        
         // Only update if confidence is reasonable or it's a new chord
-        if ((chord.confidence && chord.confidence > 0.15) || (chord.name && chord.name !== lastDetectedChord)) {
-            const chordNameText = chord.name || "...";
-            const chordTypeText = chord.type || "Listening...";
+        if (chord.confidence > 0.2 || chord.name !== lastDetectedChord) {
+            const chordNameText = chord.name;
+            const chordTypeText = chord.type;
             
             // Check if this is a new chord
-            if (chord.name && chord.name !== lastDetectedChord) {
+            if (chord.name !== lastDetectedChord && chord.name) {
                 // Add animation class
                 const chordDisplay = document.getElementById('chord-display');
-                if (chordDisplay) {
-                    chordDisplay.classList.remove('chord-changed');
-                    void chordDisplay.offsetWidth; // Trigger reflow
-                    chordDisplay.classList.add('chord-changed');
-                }
+                chordDisplay.classList.remove('chord-changed');
+                void chordDisplay.offsetWidth; // Trigger reflow
+                chordDisplay.classList.add('chord-changed');
                 
-                console.log("New chord detected:", chord.name, "with confidence", chord.confidence ? chord.confidence.toFixed(2) : 'unknown');
-                
-                // SIMPLIFIED APPROACH: Directly add new chords to history with minimal filtering
-                // Only if different from last chord and reasonable confidence
-                if (chord.confidence && chord.confidence > 0.4) {
-                    // Check if it's different from the last chord in history
-                    const isNewInHistory = recentChords.length === 0 || 
-                                         recentChords[recentChords.length-1].name !== chord.name;
-                    
-                    // Ensure we don't add too frequently
-                    const now = Date.now();
-                    const timeSinceLastAdd = now - lastHistoryAddTime;
-                    
-                    if (isNewInHistory && timeSinceLastAdd > 800) {
-                        console.log("Adding to history:", chord.name);
-                        // Directly add to history with minimal filtering
-                        addChordToHistorySimple(chord);
-                    }
-                }
-                
-                // Keep tracking for the complex system too
-                if (pendingHistoryChord !== chord.name) {
-                    pendingHistoryChord = chord.name;
-                    chordHistoryStability = 0;
+                // Add to history if it's stable enough
+                if (chord.confidence > 0.4 && chord.name) {
+                    addChordToHistory(chord);
                 }
                 
                 lastDetectedChord = chord.name;
             }
             
-            // Direct DOM updates with safety checks
-            // Use requestAnimationFrame for smoother updates
-            requestAnimationFrame(() => {
-                if (chordName) {
-                    chordName.textContent = chordNameText;
-                    console.log("Updated chord name display to:", chordNameText);
-                } else {
-                    console.error("Missing chord-name element");
-                }
-                
-                if (chordType) {
-                    chordType.textContent = chordTypeText;
-                    console.log("Updated chord type display to:", chordTypeText);
-                } else {
-                    console.error("Missing chord-type element");
-                }
-                
-                // Update confidence indicator if it exists
-                if (confidenceIndicator) {
-                    // Update confidence indicator
-                    if (chord.confidence > 0.6) {
-                        confidenceIndicator.className = 'confidence-indicator confidence-high';
-                    } else if (chord.confidence > 0.3) {
-                        confidenceIndicator.className = 'confidence-indicator confidence-medium';
-                    } else {
-                        confidenceIndicator.className = 'confidence-indicator confidence-low';
-                    }
-                } else {
-                    console.error("Missing confidence indicator element");
-                }
-            });
+            // Update display text
+            chordName.textContent = chordNameText || '...';
+            chordType.textContent = chordTypeText || 'Listening...';
+            
+            // Update confidence indicator
+            if (chord.confidence > 0.6) {
+                confidenceIndicator.className = 'confidence-indicator confidence-high';
+            } else if (chord.confidence > 0.3) {
+                confidenceIndicator.className = 'confidence-indicator confidence-medium';
+            } else {
+                confidenceIndicator.className = 'confidence-indicator confidence-low';
+            }
         }
     }
     
-    // Simplified version of addChordToHistory with minimal filtering
-    function addChordToHistorySimple(chord) {
-        // Validate chord object has required properties
-        if (!chord || !chord.name) {
-            console.error("Invalid chord for history:", chord);
+    // Add a chord to the history display
+    function addChordToHistory(chord) {
+        // Only add if it's not the same as the last one in history
+        if (recentChords.length > 0 && recentChords[recentChords.length - 1].name === chord.name) {
             return;
         }
         
-        // Just add the chord to history with minimal checks
+        // Add chord to recent chords array
         recentChords.push({
             name: chord.name,
-            type: chord.type || ""
+            type: chord.type
         });
         
-        // Update the timestamp
-        lastHistoryAddTime = Date.now();
-        
-        // Limit the history size
-        if (recentChords.length > maxRecentChords) {
+        // Limit history length
+        if (recentChords.length > maxHistoryLength) {
             recentChords.shift();
         }
         
-        // Update the UI
+        // Update history display
         updateChordHistory();
-    }
-    
-    // More complex version with stability checks
-    function addChordToHistory(chord) {
-        // Validate chord
-        if (!chord || !chord.name) {
-            console.error("Invalid chord for history:", chord);
-            return;
-        }
-        
-        if (chord.name === pendingHistoryChord) {
-            chordHistoryStability++;
-            
-            // Only add to history if we've seen this chord consistently
-            if (chordHistoryStability >= 3) {
-                console.log(`Adding stable chord to history: ${chord.name} ${chord.type || ""}`);
-                
-                // Check if it's different from the last chord in history
-                if (recentChords.length === 0 || 
-                    recentChords[recentChords.length-1].name !== chord.name) {
-                    
-                    // Add the chord to history
-                    recentChords.push({
-                        name: chord.name,
-                        type: chord.type || ""
-                    });
-                    
-                    // Limit the history size
-                    if (recentChords.length > maxRecentChords) {
-                        recentChords.shift();
-                    }
-                    
-                    // Reset stability counter after adding
-                    chordHistoryStability = 0;
-                    pendingHistoryChord = null;
-                    
-                    // Update the UI
-                    updateChordHistory();
-                }
-            }
-        } else {
-            // Different chord, reset stability
-            pendingHistoryChord = chord.name;
-            chordHistoryStability = 1;
-        }
     }
     
     // Update the chord history display
     function updateChordHistory() {
-        const chordHistoryElement = document.getElementById('chord-history');
-        if (!chordHistoryElement) {
-            console.error("Chord history element not found");
-            return;
-        }
+        chordHistory.innerHTML = '';
         
-        // Clear the current history display
-        chordHistoryElement.innerHTML = '';
-        
-        // Add each chord to the display
-        recentChords.forEach(chord => {
+        recentChords.forEach((chord, index) => {
             const chordElement = document.createElement('div');
             chordElement.className = 'chord-history-item';
-            chordElement.textContent = `${chord.name}${chord.type}`;
-            chordHistoryElement.appendChild(chordElement);
+            chordElement.textContent = chord.name + (chord.type === 'Minor' ? 'm' : '');
+            
+            // Add opacity based on position (newer chords are more opaque)
+            const opacity = 0.5 + (index / recentChords.length) * 0.5;
+            chordElement.style.opacity = opacity;
+            
+            chordHistory.appendChild(chordElement);
         });
-        
-        if (recentChords.length === 0) {
-            // Show placeholder if no chords yet
-            const placeholder = document.createElement('div');
-            placeholder.className = 'text-muted';
-            placeholder.textContent = 'Chords you play will appear here';
-            chordHistoryElement.appendChild(placeholder);
-        }
     }
     
-    // Update the status message
+    // Update status message
     function updateStatus(message) {
-        if (statusMessage) {
-            statusMessage.textContent = message;
-        }
+        statusMessage.textContent = message;
     }
     
-    // Start listening for audio
+    // Start listening for chords
     async function startListening() {
-        try {
-            updateStatus('Starting audio processing...');
-            
-            // Initialize if not already done
-            if (!audioProcessor) {
-                const initialized = await initialize();
-                if (!initialized) {
-                    return;
-                }
-            }
-            
-            // Set up audio
+        // Setup audio after user gesture (browser requirement)
+        if (!audioProcessor.analyser) {
+            updateStatus('Setting up audio, please wait...');
             const setupSuccess = await audioProcessor.setupAudio();
             if (!setupSuccess) {
-                updateStatus('Failed to access microphone. Please check permissions.');
+                updateStatus('Failed to access microphone. Please check permissions and try again.');
                 return;
             }
-            
-            // Start processing audio
-            audioProcessor.start();
-            
-            // Update UI
-            startButton.disabled = true;
-            stopButton.disabled = false;
-            updateStatus('Listening for guitar chords... Play something!');
-            
-            // Make sure the chord display is reset
-            if (chordName) chordName.textContent = '...';
-            if (chordType) chordType.textContent = 'Listening...';
-            
-        } catch (error) {
-            console.error("Error starting audio:", error);
-            updateStatus('Error: ' + error.message);
         }
+        
+        audioProcessor.start();
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        updateStatus('Listening for chords...');
     }
     
-    // Stop listening for audio
+    // Stop listening for chords
     function stopListening() {
-        try {
-            if (audioProcessor) {
-                audioProcessor.stop();
-            }
-            
-            // Update UI
-            startButton.disabled = false;
-            stopButton.disabled = true;
-            updateStatus('Stopped listening. Click "Start Listening" to begin again.');
-            
-        } catch (error) {
-            console.error("Error stopping audio:", error);
-            updateStatus('Error: ' + error.message);
-        }
+        audioProcessor.stop();
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        updateStatus('Stopped. Click "Start Listening" to begin again.');
     }
     
-    // Add event listeners to buttons
-    startButton.addEventListener('click', startListening);
-    stopButton.addEventListener('click', stopListening);
+    // Event listeners
+    startButton.addEventListener('click', async function() {
+        if (!audioProcessor.isInitialized) {
+            const initialized = await initialize();
+            if (!initialized) return;
+        }
+        startListening();
+    });
     
-    // Pre-initialize the audio processor when page loads
-    // This creates the audio context but doesn't request microphone access yet
-    initialize().then(success => {
-        if (success) {
-            updateStatus('Ready to listen! Click "Start Listening" to begin.');
+    stopButton.addEventListener('click', function() {
+        stopListening();
+    });
+    
+    // Handle page visibility changes (pause when tab is not visible)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && audioProcessor.isRunning) {
+            audioProcessor.stop();
+            updateStatus('Processing paused (page not visible)');
+        } else if (!document.hidden && audioProcessor.isInitialized && !audioProcessor.isRunning) {
+            audioProcessor.resume();
+            updateStatus('Listening for chords...');
         }
     });
+    
+    // Initialize on page load
+    initialize();
 });

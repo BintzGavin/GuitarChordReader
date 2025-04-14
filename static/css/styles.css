@@ -91,6 +91,5 @@
 }
 
 .chord-changed {
-    animation: chord-changed 0.5s ease;
-    background-color: rgba(var(--bs-info-rgb), 0.2);
+    animation: chord-changed 0.3s ease;
 }
