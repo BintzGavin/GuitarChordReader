@@ -1,6 +1,6 @@
 # Guitar Chord Reader 🎸
 
-A real-time web application that listens through your device's microphone and displays the guitar chord being played. Perfect for practice sessions, songwriting, or learning new chords.
+A real-time web application that listens through your device's microphone and displays the guitar chord being played.
 
 ## Project Origin
 
