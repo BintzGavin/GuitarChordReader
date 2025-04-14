@@ -48,12 +48,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const MIN_VOLUME_THRESHOLD = 0.02;
         
         if (results.volume >= MIN_VOLUME_THRESHOLD) {
-            // Log debug information only for audio above threshold
-            console.log("Volume:", results.volume.toFixed(4), 
-                        "Chord:", results.chord.name, 
-                        "Type:", results.chord.type,
-                        "Confidence:", results.chord.confidence.toFixed(4),
-                        "Stable:", results.chord.isStable);
+            // Detailed debug information for troubleshooting
+            if (results.chord && results.chord.name) {
+                // Basic chord detection information
+                console.log(
+                    "Volume:", results.volume.toFixed(4), 
+                    "Chord:", results.chord.name, 
+                    "Type:", results.chord.type,
+                    "Confidence:", results.chord.confidence.toFixed(4),
+                    "Stable:", results.chord.isStable,
+                    "Margin:", results.margin ? results.margin.toFixed(4) : "N/A",
+                    "2nd Best:", results.secondBest || "None"
+                );
+                
+                // Log additional info if this is an F or C chord (our problem chords)
+                if (results.chord.name === 'F' || results.chord.name === 'C') {
+                    console.log("Special chord detected:", results.chord.name, 
+                                "- Using penalties and higher threshold for reliable detection");
+                }
+            }
             
             // Update chord display if a chord is detected
             if (results.chord && results.chord.name) {

@@ -38,12 +38,13 @@ class ChordDetector {
         };
         
         // Common acoustic guitar chord voicings - adjusted templates based on typical harmonic content
-        // Note: We've made C major chord less sensitive by reducing its template values
+        // Note: We've made C major and F major chords less sensitive by reducing their template values
         this.acousticGuitarTemplates = {
             // Open chord shapes on acoustic guitar often have certain notes emphasized
             'C': { type: 'Major', template: [2, 0, 0, 0, 1, 0, 0, 1.5, 0, 0, 0, 0.5] }, // Reduced sensitivity to C major
             'D': { type: 'Major', template: [0, 0, 3, 0, 0, 0, 2, 0, 0, 3, 0, 0] }, // A and F# emphasized
             'E': { type: 'Major', template: [0, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 3] }, // E, B emphasized
+            'F': { type: 'Major', template: [1.5, 0, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 0, 0] }, // Reduced sensitivity to F major
             'G': { type: 'Major', template: [0, 0, 2.5, 0, 0, 0, 0, 3, 0, 0, 0, 1] }, // G, B emphasized, some D
             'A': { type: 'Major', template: [0, 1, 0, 0, 3, 0, 0, 0, 0, 2.5, 0, 0] }, // E, A emphasized
             
@@ -121,9 +122,14 @@ class ChordDetector {
             // Calculate cosine similarity between template and chromagram
             const similarity = this.cosineSimilarity(cleanedChroma, template);
             
-            // Special handling for C major - require higher confidence
+            // Special handling for certain chords - require higher confidence
             const isC = chordName === 'C' && !chordName.includes('m');
-            const adjustedSimilarity = isC ? similarity * 0.85 : similarity;
+            const isF = chordName === 'F' && !chordName.includes('m');
+            
+            // Apply chord-specific penalties to avoid false positives
+            let adjustedSimilarity = similarity;
+            if (isC) adjustedSimilarity *= 0.85; // Penalty for C major
+            if (isF) adjustedSimilarity *= 0.80; // Stronger penalty for F major
             
             // Find the best match
             if (adjustedSimilarity > bestMatchScore) {
@@ -156,13 +162,30 @@ class ChordDetector {
         const margin = bestMatchScore - secondBestScore;
         const marginFactor = Math.min(1, margin * 5); // Amplify small differences
         
-        const confidence = confidenceBase * 0.5 + stabilityFactor * 0.3 + marginFactor * 0.2;
+        // Apply chord-specific confidence adjustments
+        let confidence = confidenceBase * 0.5 + stabilityFactor * 0.3 + marginFactor * 0.2;
+        
+        // Extra confidence penalties for "problematic" chords that get false positives
+        if (bestMatchChord === 'F' || bestMatchChord === 'C') {
+            // Apply stronger stability requirements for F and C
+            if (this.chordStability < 2) { // More stable detection required
+                confidence *= 0.85; // Reduce confidence for unstable F/C detections
+            }
+            
+            // Stronger margin requirement
+            if (margin < 0.1) { // If it's a close match with another chord
+                confidence *= 0.8; // Greatly reduce confidence
+            }
+        }
         
         return {
             name: bestMatchChord.replace('m', ''), // Remove 'm' suffix for display
             type: bestMatchChord.includes('m') ? 'Minor' : 'Major',
             confidence: confidence,
-            isStable: this.chordStability >= this.stabilityThreshold
+            isStable: this.chordStability >= this.stabilityThreshold,
+            // Debug information
+            margin: margin,
+            secondBest: secondBestChord.replace('m', '')
         };
     }
     
