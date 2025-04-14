@@ -14,7 +14,11 @@ This project was developed in one-shot in Replit, based on a comprehensive imple
 
 The project demonstrates how a well structured implementation plan can be rapidly turned into a working application. The implementation plan itself was created by ChatGPT Deep Research. You can view the original ChatGPT conversation that generated this plan [here](https://chatgpt.com/share/67fd4f06-acd4-8006-aec2-d1f67e8da08c).
 
-I knew little to nothing about audio processing, so I had NotebookLM generate a podcast based on the learning plan to help understand the concepts. You can listen to the podcast here.
+I knew little to nothing about audio processing, so I had NotebookLM generate a podcast based on a learning plan I generated in the above thread to help understand the concepts used. You can listen to the podcast here: 
+
+
+https://github.com/user-attachments/assets/599fc1c4-f139-46b6-a8a7-7dbcc25e5a27
+
 
 ## Features
 
@@ -86,7 +90,7 @@ The application uses advanced audio processing techniques to detect guitar chord
 
 ## Technical Details
 
-- Built with Flask (Python) backend
+- Built with Flask (Python) backend (Replit's choice, I didn't argue)
 - Uses Web Audio API for real-time audio processing
 - Implements FFT (Fast Fourier Transform) for frequency analysis
 - Employs template matching for chord recognition
