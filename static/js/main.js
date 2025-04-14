@@ -44,6 +44,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update volume meter
         updateVolumeMeter(results.volume);
         
+        // Log debug information
+        console.log("Volume:", results.volume.toFixed(4), 
+                    "Chord:", results.chord.name, 
+                    "Type:", results.chord.type,
+                    "Confidence:", results.chord.confidence.toFixed(4),
+                    "Stable:", results.chord.isStable);
+        
         // Update chord display if a chord is detected
         if (results.chord && results.chord.name) {
             updateChordDisplay(results.chord);
@@ -92,8 +99,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 void chordDisplay.offsetWidth; // Trigger reflow
                 chordDisplay.classList.add('chord-changed');
                 
-                // Add to history if it's stable enough
-                if (chord.confidence > 0.4 && chord.name) {
+                // Add to history if it's a valid chord (lower threshold for history)
+                if (chord.confidence > 0.2 && chord.name) {
+                    console.log("Adding chord to history:", chord.name, chord.type, "confidence:", chord.confidence.toFixed(4));
                     addChordToHistory(chord);
                 }
                 
@@ -139,17 +147,31 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update the chord history display
     function updateChordHistory() {
+        // Clear the history display
         chordHistory.innerHTML = '';
         
+        // Log the current chord history
+        console.log("Current chord history:", recentChords.map(c => c.name + (c.type === 'Minor' ? 'm' : '')).join(', '));
+        
+        // Create elements for each chord in history
         recentChords.forEach((chord, index) => {
             const chordElement = document.createElement('div');
             chordElement.className = 'chord-history-item';
-            chordElement.textContent = chord.name + (chord.type === 'Minor' ? 'm' : '');
+            
+            // Format the chord name with minor indicator if needed
+            const displayText = chord.name + (chord.type === 'Minor' ? 'm' : '');
+            chordElement.textContent = displayText;
+            
+            // Give most recent chords stronger styling
+            if (index === recentChords.length - 1) {
+                chordElement.classList.add('most-recent');
+            }
             
             // Add opacity based on position (newer chords are more opaque)
-            const opacity = 0.5 + (index / recentChords.length) * 0.5;
+            const opacity = 0.6 + (index / recentChords.length) * 0.4;
             chordElement.style.opacity = opacity;
             
+            // Add the chord element to the history container
             chordHistory.appendChild(chordElement);
         });
     }
